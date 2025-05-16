@@ -17,18 +17,19 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file digitales.c
+/** @file digital.c
  ** @brief Codigo fuente del modulo para la gestión entradas y salidas digitales
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "digitales.h"
-#include "config.h"
-#include <stdio.h>
-#include <string.h>
+#include "digital.h"
 #include <stdbool.h>
+#include <stdio.h>
+#include "chip.h"
 #include <stdlib.h>
+#include <string.h>
+#include "config.h"
 /* === Macros definitions ========================================================================================== */
 
 /*#ifdef USAR_MEMORIA_ESTATICA
@@ -39,7 +40,12 @@ SPDX-License-Identifier: MIT
 
 /* === Private data type declarations ============================================================================== */
 
-
+/*! Estructura que representa una salida digital */
+struct digital_output_s {
+    uint8_t port; /*!< Puerto al que pertenece la salida */
+    uint8_t pin;  /*!< Pin al que pertenece la salida */
+    bool state;
+};
 
 /* === Private function declarations =============================================================================== */
 
@@ -52,60 +58,37 @@ SPDX-License-Identifier: MIT
 static alumno_t CrearInstancia(void);
 #endif*/
 
-/**
- * @brief Serializa un campo numérico clave-valor en formato JSON.
- *
- * @param campo Nombre del campo
- * @param valor Valor numérico
- * @param buffer Buffer de salida
- * @param size  Tamaño disponible para escribir la cadena
- * @return int Longitud del texto generado o -1 si el espacio no es suficiente
- */
-static int SerializarNumero(char campo[], int valor, char buffer[], uint32_t size);
-
 /* === Private variable definitions ================================================================================ */
-//#ifdef USAR_MEMORIA_ESTATICA
-//    static struct alumno_s instancias[ALUMNOS_MAX_INSTANCIAS]={0};
-//#endif
+// #ifdef USAR_MEMORIA_ESTATICA
+//     static struct alumno_s instancias[ALUMNOS_MAX_INSTANCIAS]={0};
+// #endif
 /* === Public variable definitions ================================================================================= */
 
 /* === Private function definitions ================================================================================ */
-//#ifdef USAR_MEMORIA_ESTATICA
-//static alumno_t CrearInstancia(){
-//    alumno_t self = NULL;
-//    for (int i = 0; i < ALUMNOS_MAX_INSTANCIAS; i++)
-//    {
-//        if (!instancias[i].ocupado)
-//        {
-//            instancias[i].ocupado = true;
-  //          self = &instancias[i];
- //           break;
-  //      }
-        
-   // }
-    
-   //return self;
-    
-//}
-//#endif
 
 
 /* === Public function implementation ============================================================================== */
 
-//alumno_t CrearAlumno(char* nombre, char* apellido, uint32_t dni) {
-//    #ifdef USAR_MEMORIA_DINAMICA
-//        alumno_t self = malloc(sizeof(struct alumno_s));
-//    #else
-//        alumno_t self = CrearInstancia();
-//    #endif
-//    if (self != NULL) {
-//        self->documento = dni;
-//        strncpy(self->nombre, nombre, sizeof(self->nombre) - 1);
-//        strncpy(self->apellido, apellido, sizeof(self->apellido) - 1);
-//    } else{
-//        printf("Error alumno\n");
-//    }
-//    return self;
-//}
+digital_output_t DigitalOutputCreate(uint8_t port, uint8_t pin){
+    digital_output_t self = malloc(sizeof(struct digital_output_s));
+    if (self != NULL)
+    {
+        self ->port = port;
+        self ->pin = pin;
+    }
+    return self;
+} 
+
+void DigitalOutputActivate(digital_output_t self){
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->port,self->pin,!self->state);
+}
+
+void DigitalOutputDeactivate(digital_output_t self){
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->port,self->pin,!self->state);
+}
+
+void DigitalOutputToggle(digital_output_t self){
+    Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, self->port, self->pin);
+}
 
 /* === End of documentation ======================================================================================== */
