@@ -1,4 +1,4 @@
-/* Copyright 2022, Laboratorio de Microprocesadores
+/* Copyright 2025, Lucas Ahumada Checa Casquerp
  * Facultad de Ciencias Exactas y Tecnología
  * Universidad Nacional de Tucuman
  * http://www.microprocesadores.unt.edu.ar/

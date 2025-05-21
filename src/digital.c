@@ -125,11 +125,11 @@ digital_states_t DigitalWasChanged(digital_input_t self){
     
 }
 
-bool DigitalWasActivated(digital_input_t self){
+bool DigitalInputWasActivated(digital_input_t self){
     return DIGITAL_INPUT_WAS_ACTIVATED == DigitalWasChanged(self);
 }
 
-bool DigitalWasDeactivated(digital_input_t self){
+bool DigitalinputWasDeactivated(digital_input_t self){
     return DIGITAL_INPUT_WAS_DEACTIVATED == DigitalWasChanged(self);
 }
 
