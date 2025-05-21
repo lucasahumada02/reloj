@@ -32,63 +32,105 @@ SPDX-License-Identifier: MIT
 #include "config.h"
 /* === Macros definitions ========================================================================================== */
 
-/*#ifdef USAR_MEMORIA_ESTATICA
-    #ifndef ALUMNOS_MAX_INSTANCIAS
-        #define ALUMNOS_MAX_INSTANCIAS 2 //!<Cantidad maxima de alumnos
-    #endif
-#endif*/
 
 /* === Private data type declarations ============================================================================== */
 
 /*! Estructura que representa una salida digital */
 struct digital_output_s {
-    uint8_t port; /*!< Puerto al que pertenece la salida */
-    uint8_t pin;  /*!< Pin al que pertenece la salida */
-    bool state;
+    uint8_t gpio; /*!< Puerto al que pertenece la salida */
+    uint8_t bit;  /*!< Bit al que pertenece la salida */
+};
+
+/*! Estrucutura que representa una entrada digital*/
+struct digital_input_s
+{
+    uint8_t gpio; /*!< Puerto al que pertenece la entrada */
+    uint8_t bit;  /*!< Bit al que pertenece la entrada */
+    bool inverted;/*!< Indica si la entrada es invertida o no */
+    bool lastState; /*!< Último estado leído de la entrada, usado para detectar cambios */
 };
 
 /* === Private function declarations =============================================================================== */
 
-/**
- * @brief Crea una nueva instancia de la estructura alumno_s.
- *
- * @return Puntero a la nueva instancia de alumno_s, o NULL si no hay espacio disponible.
- */
-/*#ifdef USAR_MEMORIA_ESTATICA
-static alumno_t CrearInstancia(void);
-#endif*/
-
 /* === Private variable definitions ================================================================================ */
-// #ifdef USAR_MEMORIA_ESTATICA
-//     static struct alumno_s instancias[ALUMNOS_MAX_INSTANCIAS]={0};
-// #endif
+
 /* === Public variable definitions ================================================================================= */
 
 /* === Private function definitions ================================================================================ */
 
-
 /* === Public function implementation ============================================================================== */
 
-digital_output_t DigitalOutputCreate(uint8_t port, uint8_t pin){
+digital_output_t DigitalOutputCreate(uint8_t gpio, uint8_t bit){
     digital_output_t self = malloc(sizeof(struct digital_output_s));
     if (self != NULL)
     {
-        self ->port = port;
-        self ->pin = pin;
+        self ->gpio = gpio;
+        self ->bit = bit;
+        Chip_GPIO_SetPinState(LPC_GPIO_PORT, self->gpio, self->bit, false);
+        Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, self->gpio, self->bit, true);
     }
     return self;
 } 
 
 void DigitalOutputActivate(digital_output_t self){
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->port,self->pin,!self->state);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->gpio,self->bit,true);
 }
 
 void DigitalOutputDeactivate(digital_output_t self){
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->port,self->pin,!self->state);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->gpio,self->bit,false);
 }
 
 void DigitalOutputToggle(digital_output_t self){
-    Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, self->port, self->pin);
+    Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, self->gpio, self->bit);
+}
+digital_input_t DigitalInputCreate(uint8_t gpio, uint8_t bit,bool inverted){
+    digital_input_t self = malloc(sizeof(struct digital_input_s));
+    if (self !=NULL)
+    {
+        self ->gpio=gpio;
+        self->bit=bit;
+        self->inverted = inverted;
+
+        Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, self->gpio, self->bit, false);
+
+        self->lastState=DigitalInputGetIsActive(self);
+    }
+    return self; 
+}
+
+bool DigitalInputGetIsActive(digital_input_t self){
+     bool state = Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, self->gpio, self->bit) != 0;
+    if (self->inverted)
+    { 
+        state = !state;
+    }
+    
+    return state;
+}
+
+digital_states_t DigitalWasChanged(digital_input_t self){
+    digital_states_t result = DIGITAL_INPUT_NO_CHANGE;
+
+    bool state = DigitalInputGetIsActive(self);
+
+    if (state && !self->lastState)
+    {
+        result = DIGITAL_INPUT_WAS_ACTIVATED;
+    }else if (!state && self->lastState)
+    {
+        result = DIGITAL_INPUT_WAS_DEACTIVATED;
+    }
+    self->lastState=state;
+    return result;
+    
+}
+
+bool DigitalWasActivated(digital_input_t self){
+    return DIGITAL_INPUT_WAS_ACTIVATED == DigitalWasChanged(self);
+}
+
+bool DigitalWasDeactivated(digital_input_t self){
+    return DIGITAL_INPUT_WAS_DEACTIVATED == DigitalWasChanged(self);
 }
 
 /* === End of documentation ======================================================================================== */
