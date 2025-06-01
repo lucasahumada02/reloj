@@ -41,6 +41,10 @@ extern "C" {
 
 /* === Public data type declarations =============================================================================== */
 
+/**
+ * @brief Representa los recursos de hardware disponibles en la placa
+ * 
+ */
 typedef struct Board_s{
     digital_output_t led_green;
     digital_output_t led_red;
@@ -56,6 +60,11 @@ typedef struct Board_s{
 
 /* === Public function declarations ================================================================================ */
 
+/**
+ * @brief Inicializa los recursos de hardware del sistema.
+ * 
+ * @return Board_t 
+ */
 Board_t BoardCreate(void);
 
 /* === End of conditional blocks =================================================================================== */

@@ -130,8 +130,13 @@ bool DigitalInputWasActivated(digital_input_t self){
     return DIGITAL_INPUT_WAS_ACTIVATED == DigitalWasChanged(self);
 }
 
-bool DigitalinputWasDeactivated(digital_input_t self){
+bool DigitalInputWasDeactivated(digital_input_t self){
     return DIGITAL_INPUT_WAS_DEACTIVATED == DigitalWasChanged(self);
 }
+
+digital_states_t DigitalInputWasChanged(digital_input_t self) {
+    return DigitalWasChanged(self);
+}
+
 
 /* === End of documentation ======================================================================================== */
