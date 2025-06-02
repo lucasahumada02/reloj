@@ -27,7 +27,6 @@ SPDX-License-Identifier: MIT
 #include "poncho.h"
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 /* === Macros definitions ========================================================================================== */
 
@@ -41,12 +40,16 @@ SPDX-License-Identifier: MIT
 struct screen_s{
     uint8_t digits;
     uint8_t current_digit;
+    uint8_t flashing_from;
+    uint8_t flashing_to;
+    uint8_t flashing_count;
+    uint16_t flashing_frecuency;
     screen_driver_t driver;
     uint8_t value[SCREEN_MAX_DIGITS];
 };
 
 /* === Private function declarations =============================================================================== */
-static const uint8_t IMAGES[10] = {
+static const uint8_t IMAGES[] = {
     SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_E |SEGMENT_F, //0
     SEGMENT_B | SEGMENT_C, //1
     SEGMENT_A | SEGMENT_B | SEGMENT_D | SEGMENT_E | SEGMENT_G,//2
@@ -67,7 +70,6 @@ static const uint8_t IMAGES[10] = {
 
 
 /* === Public function implementation ============================================================================== */
-
 screen_t ScreenCreate(uint8_t digits, screen_driver_t driver){
     screen_t self = malloc(sizeof(struct screen_s));
     if (digits > SCREEN_MAX_DIGITS){
@@ -77,11 +79,11 @@ screen_t ScreenCreate(uint8_t digits, screen_driver_t driver){
         self ->digits = digits;
         self->driver = driver;
         self->current_digit = 0;
-
+        self->flashing_count = 0;
+        self->flashing_frecuency = 0;
     }
     return self;
 }
-
 void ScreenWriteBCD(screen_t self, uint8_t  value[], uint8_t size){
     memset(self->value,0,sizeof(self->value));
     if (size > self->digits){
@@ -91,11 +93,46 @@ void ScreenWriteBCD(screen_t self, uint8_t  value[], uint8_t size){
         self->value[i]=IMAGES[value[i]];
     }
 }
-
 void ScreenRefresh(screen_t self){
+    uint8_t segments;
+
     self->driver->DigitsTurnOff();
     self->current_digit = (self->current_digit + 1) % self->digits;
-    self->driver->SegmentsUpdate(self->value[self->current_digit]);
+    
+    segments = self->value[self->current_digit];
+    if (self->flashing_frecuency != 0){
+        if (self->current_digit == 0){
+            self->flashing_count = (self->flashing_count + 1) % (self->flashing_frecuency);
+        }
+        if (self->flashing_count < (self->flashing_frecuency / 2)){
+            if (self->current_digit >= self->flashing_from){
+                if (self->current_digit <= self->flashing_to)
+                {
+                   segments = 0;
+                }
+            } 
+        }  
+    }
+    
+    self->driver->SegmentsUpdate(segments);
     self->driver->DigitTurnOn(self->current_digit);
+    
+}
+
+int DisplayFlashDigits(screen_t self, uint8_t from, uint8_t to, uint16_t divisor){
+    int result = 0;
+
+    if ((from > to) || (from >= SCREEN_MAX_DIGITS) || (to >= SCREEN_MAX_DIGITS)){
+        result = -1;
+    } else if (!self){
+        result = -1;
+    }else{
+            self->flashing_from = from;
+            self->flashing_to = to;
+            self->flashing_frecuency = 2 * divisor;
+            self->flashing_count = 0;
+    }
+
+    return result;
 }
 /* === End of documentation ======================================================================================== */

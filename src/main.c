@@ -69,6 +69,8 @@ int main(void) {
     board_t board = BoardCreate();
 
     ScreenWriteBCD(board->screen, value, 4);
+    DisplayFlashDigits(board->screen, 1, 2, 50);
+
     while (true) {
         // if (DigitalInputGetIsActive(board->key_push)) {
         //      DigitalOutputActivate(board->led_blue);
