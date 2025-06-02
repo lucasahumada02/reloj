@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
+Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,20 +17,17 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef BSP_H_
-#define BSP_H_
+#ifndef SCREEN_H_
+#define SCREEN_H_
 
-/** @file bsp.h
- ** @brief Plantilla para la creación de archivos de de cabeceras en lenguaje C
+/** @file screen.h
+ ** @brief Declaraciones del módulo para la gestión de una pantalla multiplexada de 7 segmentos
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "digital.h"
-#include "edu_ciaa.h"
-#include "screen.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -40,33 +37,47 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
+#define SEGMENT_A (1 << 0)
+#define SEGMENT_B (1 << 1)
+#define SEGMENT_C (1 << 2)
+#define SEGMENT_D (1 << 3)
+#define SEGMENT_E (1 << 4)
+#define SEGMENT_F (1 << 5)
+#define SEGMENT_G (1 << 6)
+#define SEGMENT_P (1 << 7)
+
+
 /* === Public data type declarations =============================================================================== */
 
- typedef struct board_s{
-    digital_output_t buzzer;
-    digital_input_t set_time;
-    digital_input_t set_alarm;
-    digital_input_t decrement;
-    digital_input_t increment;
-    digital_input_t accept;
-    digital_input_t cancel;
-    screen_t screen;
- }const * const board_t;
+typedef struct screen_s * screen_t;
+
+typedef void (*digits_turn_off_t)(void);
+
+typedef void (*segments_update_t)(uint8_t);
+
+typedef void (*digits_turn_on_t)(uint8_t);
+
+
+
+typedef struct screen_driver_s {
+    digits_turn_off_t DigitsTurnOff;
+    segments_update_t SegmentsUpdate;
+    digits_turn_on_t DigitTurnOn;
+} const * screen_driver_t;
+
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
-/**
- * @brief Inicializa los recursos de hardware del sistema.
- * 
- * @return Board_t 
- */
-board_t BoardCreate(void);
+screen_t ScreenCreate(uint8_t digits, screen_driver_t driver);
 
+void ScreenWriteBCD(screen_t screen, uint8_t  value[], uint8_t size);
+
+void ScreenRefresh(screen_t screen);
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BSP_H_ */
+#endif /* SCREEN_H_ */

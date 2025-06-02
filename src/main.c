@@ -40,7 +40,6 @@
 
 /* === Headers files inclusions =============================================================== */
 
-#include "digital.h"
 #include <stdbool.h>
 #include "config.h"
 #include "bsp.h"
@@ -65,39 +64,39 @@
 
 int main(void) { 
     int divisor  = 0;
+    uint8_t value[4]= {1, 2, 3, 4};
 
-    Board_t board = BoardCreate();
+    board_t board = BoardCreate();
 
+    ScreenWriteBCD(board->screen, value, 4);
     while (true) {
-        if (DigitalInputGetIsActive(board->key_push)) {
-             DigitalOutputActivate(board->led_blue);
-        } else {
-            DigitalOutputDeactivate(board->led_blue);
-        }
+        // if (DigitalInputGetIsActive(board->key_push)) {
+        //      DigitalOutputActivate(board->led_blue);
+        // } else {
+        //     DigitalOutputDeactivate(board->led_blue);
+        // }
 
-        if (DigitalInputWasActivated(board->key_toggle)) {
-            DigitalOutputToggle(board->led_red);
-        }
+        // if (DigitalInputWasActivated(board->key_toggle)) {
+        //     DigitalOutputToggle(board->led_red);
+        // }
 
-        if (DigitalInputGetIsActive(board->key_turn_on)) {
-            DigitalOutputActivate(board->led_yellow);
-        }
-        if (DigitalInputGetIsActive(board->key_turn_off)) {
-            DigitalOutputDeactivate(board->led_yellow);
-        }
+        // if (DigitalInputGetIsActive(board->key_turn_on)) {
+        //     DigitalOutputActivate(board->led_yellow);
+        // }
+        // if (DigitalInputGetIsActive(board->key_turn_off)) {
+        //     DigitalOutputDeactivate(board->led_yellow);
+        // }
         
 
         divisor++;
         if (divisor == 5) {
             divisor = 0;
-            DigitalOutputToggle(board->led_green);
+           // DigitalOutputToggle(board->led_green);
         }
-
-        for (int index = 0; index < 100; index++) {
+        ScreenRefresh(board->screen);
             for (int delay = 0; delay < 25000; delay++) {
                 __asm("NOP");
             }
-        }
     }
 }
 
