@@ -128,7 +128,7 @@ void ScreenRefresh(screen_t self){
         }  
     }
 
-    segments = self->dots[self->current_digit];
+    dots = self->dots[self->current_digit];
     if (self->flashing_Dots_frecuency != 0){
         if (self->current_digit == 0){
             self->flashing_Dots_count = (self->flashing_Dots_count + 1) % (self->flashing_Dots_frecuency);
@@ -137,12 +137,12 @@ void ScreenRefresh(screen_t self){
             if (self->current_digit >= self->flashing_Dots_from){
                 if (self->current_digit <= self->flashing_Dots_to)
                 {
-                   segments = 0;
+                   dots = 0;
                 }
             } 
         }  
     }
-    self->driver->SegmentsUpdate(segments);
+    self->driver->SegmentsUpdate(segments | dots);
     self->driver->DigitTurnOn(self->current_digit);
     
 }

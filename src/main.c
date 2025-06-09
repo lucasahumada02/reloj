@@ -70,8 +70,8 @@ int main(void) {
     board_t board = BoardCreate();
 
     ScreenWriteBCD(board->screen, value, sizeof(value),dots);
-    DisplayFlashDigits(board->screen, 1, 2, 50);
-    DisplayFlashDots(board->screen, 1, 2, 25);
+    DisplayFlashDigits(board->screen, 0, 3, 50);
+    DisplayFlashDots(board->screen, 0, 3, 25);
 
     while (true) {
         // if (DigitalInputGetIsActive(board->key_push)) {
