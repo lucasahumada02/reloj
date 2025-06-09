@@ -24,14 +24,12 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions ==================================================================================== */
 
 #include "bsp.h"
-#include "config.h"
 #include "chip.h"
 #include "digital.h"
 #include <stdbool.h>
-#include <stdlib.h>
 #include "poncho.h"
-#include <stddef.h>
 #include "screen.h"
+#include "edu_ciaa.h"
 
 
 /* === Macros definitions ========================================================================================== */
@@ -40,11 +38,15 @@ SPDX-License-Identifier: MIT
 
 /* === Private function declarations =============================================================================== */
 
-void DigitsTurnOff(void);
+static void DigitsInit(void);
 
-void SegmentsUpdate(uint8_t value);
+static void SegmentsInit(void);
 
-void DigitTurnOn(uint8_t digit);
+static void DigitsTurnOff(void);
+
+static void SegmentsUpdate(uint8_t value);
+
+static void DigitTurnOn(uint8_t digit);
 
 /* === Private variable definitions ================================================================================ */
 
@@ -58,7 +60,7 @@ static const struct screen_driver_s screen_driver = {
 
 /* === Private function definitions ================================================================================ */
 
-void DigitsInit(void){
+static void DigitsInit(void){
     Chip_SCU_PinMuxSet(DIGIT_1_PORT, DIGIT_1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | DIGIT_1_FUNC);
     Chip_GPIO_SetPinState(LPC_GPIO_PORT, DIGIT_1_GPIO, DIGIT_1_BIT, false);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, DIGIT_1_GPIO, DIGIT_1_BIT, true);
@@ -110,19 +112,19 @@ void SegmentsInit(void){
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, SEGMENT_P_GPIO, SEGMENT_P_BIT, true);
 }
 
-void DigitsTurnOff(void){
+static void DigitsTurnOff(void){
   Chip_GPIO_ClearValue(LPC_GPIO_PORT, DIGITS_GPIO, DIGITS_MASK);
   Chip_GPIO_ClearValue(LPC_GPIO_PORT, SEGMENTS_GPIO, SEGMENTS_MASK);
   Chip_GPIO_SetPinState(LPC_GPIO_PORT, SEGMENT_P_GPIO, SEGMENT_P_BIT, false);
 }
 
-void SegmentsUpdate(uint8_t value){
+static void SegmentsUpdate(uint8_t value){
   Chip_GPIO_SetValue(LPC_GPIO_PORT, SEGMENTS_GPIO, (value & SEGMENTS_MASK));
   Chip_GPIO_SetPinState(LPC_GPIO_PORT, SEGMENT_P_GPIO, SEGMENT_P_BIT, (value & SEGMENT_P));
 }
 
 
-void DigitTurnOn(uint8_t digit){
+static void DigitTurnOn(uint8_t digit){
   Chip_GPIO_SetValue(LPC_GPIO_PORT, DIGITS_GPIO, (1 << (3 - digit)) & DIGITS_MASK);
 }
 
@@ -134,6 +136,24 @@ board_t BoardCreate(void){
       DigitsInit();
       SegmentsInit();
      board->screen = ScreenCreate(4, &screen_driver);
+
+     Chip_SCU_PinMuxSet(KEY_F1_PORT, KEY_F1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F1_FUNC);
+      board->increment = DigitalInputCreate(KEY_F1_GPIO, KEY_F1_BIT, true);
+
+      Chip_SCU_PinMuxSet(KEY_F2_PORT, KEY_F2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F2_FUNC);
+      board->decrement = DigitalInputCreate(KEY_F2_GPIO, KEY_F2_BIT, true);
+
+      Chip_SCU_PinMuxSet(KEY_F3_PORT, KEY_F3_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F3_FUNC);
+      board->set_time = DigitalInputCreate(KEY_F3_GPIO, KEY_F3_BIT, true);
+
+      Chip_SCU_PinMuxSet(KEY_F4_PORT, KEY_F4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F4_FUNC);
+      board->set_alarm = DigitalInputCreate(KEY_F4_GPIO, KEY_F4_BIT, true);
+
+      Chip_SCU_PinMuxSet(KEY_ACCEPT_PORT, KEY_ACCEPT_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_ACCEPT_FUNC);
+      board->accept = DigitalInputCreate(KEY_ACCEPT_GPIO, KEY_ACCEPT_BIT, true);
+
+      Chip_SCU_PinMuxSet(KEY_CANCEL_PORT, KEY_CANCEL_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_CANCEL_FUNC);
+      board->cancel = DigitalInputCreate(KEY_CANCEL_GPIO, KEY_CANCEL_BIT, true);
     }
 
     return board;

@@ -68,27 +68,29 @@ typedef struct screen_driver_s {
 /* === Public function declarations ================================================================================ */
 
 /**
- * @brief 
+ * @brief Función para crear una nueva instancia de la pantalla
  * 
- * @param digits 
- * @param driver 
- * @return screen_t 
+ * @param digits numeros de digitos del display
+ * @param driver puntero a la estructura que contiene las funciones del driver del display
+ * @return screen_t Puntero a la nueva instancia de la pantalla
  */
 screen_t ScreenCreate(uint8_t digits, screen_driver_t driver);
 
 /**
- * @brief 
+ * @brief Función para escribir un valor en formato BCD en la pantalla.
  * 
- * @param screen 
- * @param value 
- * @param size 
+ * @param screen Puntero a la instancia de la pantalla.
+ * @param value Puntero al arreglo que contiene los valores BCD a escribir.
+ * @param size Tamaño del arreglo de valores BCD.
+ * @param dots Puntero al arreglo que indica si se debe mostrar el punto decimal en cada dígito.
  */
 void ScreenWriteBCD(screen_t screen, uint8_t * value, uint8_t size, uint8_t * dots);
 
 /**
- * @brief 
+ * @brief  Función para refrescar la pantalla, actualizando el dígito actual.
+ *
  * 
- * @param screen 
+ * @param screen  Puntero a la instancia de la pantalla.
  */
 void ScreenRefresh(screen_t screen);
 
