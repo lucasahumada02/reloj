@@ -91,8 +91,9 @@ int main(void) {
         
 
         divisor++;
-        if (divisor == 5) {
+        if (divisor == 40) {
             divisor = 0;
+            ScreenToggleDots(board->screen);
            // DigitalOutputToggle(board->led_green);
         }
         ScreenRefresh(board->screen);

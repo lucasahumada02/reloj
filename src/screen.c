@@ -45,6 +45,7 @@ struct screen_s{
     uint8_t flashing_count;
     uint16_t flashing_frecuency;
     screen_driver_t driver;
+    bool dots_on;
     uint8_t value[SCREEN_MAX_DIGITS];
 };
 
@@ -81,6 +82,7 @@ screen_t ScreenCreate(uint8_t digits, screen_driver_t driver){
         self->current_digit = 0;
         self->flashing_count = 0;
         self->flashing_frecuency = 0;
+        self->dots_on = false;
     }
     return self;
 }
@@ -99,6 +101,8 @@ void ScreenRefresh(screen_t self){
     self->driver->DigitsTurnOff();
     self->current_digit = (self->current_digit + 1) % self->digits;
     
+    
+
     segments = self->value[self->current_digit];
     if (self->flashing_frecuency != 0){
         if (self->current_digit == 0){
@@ -113,7 +117,9 @@ void ScreenRefresh(screen_t self){
             } 
         }  
     }
-    
+    if (self->dots_on) {
+    segments |= SEGMENT_P;  
+    }
     self->driver->SegmentsUpdate(segments);
     self->driver->DigitTurnOn(self->current_digit);
     
@@ -135,4 +141,17 @@ int DisplayFlashDigits(screen_t self, uint8_t from, uint8_t to, uint16_t divisor
 
     return result;
 }
+
+void ScreenEnableDots(screen_t self) {
+    self->dots_on = true;
+}
+
+void ScreenDisableDots(screen_t self) {
+    self->dots_on = false;
+}
+
+void ScreenToggleDots(screen_t self) {
+    self->dots_on = !self->dots_on;
+}
+
 /* === End of documentation ======================================================================================== */

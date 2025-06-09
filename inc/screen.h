@@ -85,6 +85,28 @@ void ScreenRefresh(screen_t screen);
  */
 int DisplayFlashDigits(screen_t screen, uint8_t from, uint8_t to, uint16_t divisor);
 
+/**
+ * @brief Enciende los puntos centrales (dos puntos del reloj)
+ * 
+ * @param screen Descriptor de la pantalla
+ */
+void ScreenEnableDots(screen_t screen);
+
+/**
+ * @brief Apaga los puntos centrales
+ * 
+ * @param screen Descriptor de la pantalla
+ */
+void ScreenDisableDots(screen_t screen);
+
+/**
+ * @brief Alterna el estado de los puntos centrales
+ * 
+ * @param screen Descriptor de la pantalla
+ */
+void ScreenToggleDots(screen_t screen);
+
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus
