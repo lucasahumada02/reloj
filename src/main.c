@@ -65,11 +65,13 @@
 int main(void) { 
     int divisor  = 0;
     uint8_t value[4]= {1, 2, 3, 4};
+    uint8_t dots[4]={1,1,1,1};
 
     board_t board = BoardCreate();
 
-    ScreenWriteBCD(board->screen, value, 4);
+    ScreenWriteBCD(board->screen, value, sizeof(value),dots);
     DisplayFlashDigits(board->screen, 1, 2, 50);
+    DisplayFlashDots(board->screen, 1, 2, 25);
 
     while (true) {
         // if (DigitalInputGetIsActive(board->key_push)) {
@@ -88,13 +90,11 @@ int main(void) {
         // if (DigitalInputGetIsActive(board->key_turn_off)) {
         //     DigitalOutputDeactivate(board->led_yellow);
         // }
-        
-
+    
         divisor++;
-        if (divisor == 40) {
+        if (divisor == 5) {
             divisor = 0;
-            ScreenToggleDots(board->screen);
-           // DigitalOutputToggle(board->led_green);
+         
         }
         ScreenRefresh(board->screen);
             for (int delay = 0; delay < 25000; delay++) {

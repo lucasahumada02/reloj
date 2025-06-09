@@ -52,9 +52,7 @@ extern "C" {
 typedef struct screen_s * screen_t;
 
 typedef void (*digits_turn_off_t)(void);
-
 typedef void (*segments_update_t)(uint8_t);
-
 typedef void (*digits_turn_on_t)(uint8_t);
 
 
@@ -69,14 +67,33 @@ typedef struct screen_driver_s {
 
 /* === Public function declarations ================================================================================ */
 
+/**
+ * @brief 
+ * 
+ * @param digits 
+ * @param driver 
+ * @return screen_t 
+ */
 screen_t ScreenCreate(uint8_t digits, screen_driver_t driver);
 
-void ScreenWriteBCD(screen_t screen, uint8_t  value[], uint8_t size);
+/**
+ * @brief 
+ * 
+ * @param screen 
+ * @param value 
+ * @param size 
+ */
+void ScreenWriteBCD(screen_t screen, uint8_t * value, uint8_t size, uint8_t * dots);
 
+/**
+ * @brief 
+ * 
+ * @param screen 
+ */
 void ScreenRefresh(screen_t screen);
 
 /**
- * @brief Función para hacer parpadear algunos digitos de la pantalla
+ * @brief Función para hacer parpadear los digitos del display
  * 
  * @param display Puntero al descriptor de la pantalla con la que se quiere operar
  * @param from Posición del primer digito que se quiere hacer parpadear
@@ -86,25 +103,14 @@ void ScreenRefresh(screen_t screen);
 int DisplayFlashDigits(screen_t screen, uint8_t from, uint8_t to, uint16_t divisor);
 
 /**
- * @brief Enciende los puntos centrales (dos puntos del reloj)
+ * @brief Función para hacer parpadear los puntos del display
  * 
- * @param screen Descriptor de la pantalla
+ * @param display Puntero al descriptor de la pantalla con la que se quiere operar
+ * @param from Posición del primer digito que se quiere hacer parpadear
+ * @param to Posición del ultimo digito que se quiere hacer parpadear
+ * @param frecuency Factor de división de la frecuencia de refresco para el parpadeo
  */
-void ScreenEnableDots(screen_t screen);
-
-/**
- * @brief Apaga los puntos centrales
- * 
- * @param screen Descriptor de la pantalla
- */
-void ScreenDisableDots(screen_t screen);
-
-/**
- * @brief Alterna el estado de los puntos centrales
- * 
- * @param screen Descriptor de la pantalla
- */
-void ScreenToggleDots(screen_t screen);
+int DisplayFlashDots(screen_t screen, uint8_t from, uint8_t to, uint16_t divisor);
 
 
 /* === End of conditional blocks =================================================================================== */
