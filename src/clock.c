@@ -37,16 +37,29 @@ SPDX-License-Identifier: MIT
 
 /* === Public variable definitions ================================================================================= */
 
+struct clock_s {
+    clock_time_t current_time;
+    bool valid;
+};
+
 /* === Private function definitions ================================================================================ */
 
 /* === Public function implementation ============================================================================== */
 clock_t ClockCreate(void){
-    return NULL;
+    static struct clock_s self[1];
+    memset(self, 0, sizeof(struct clock_s));
+    self->valid = false;
+    return self;
 }
 
-bool ClockGetTime(clock_t clock, clock_time_t * result){
-    (void) clock;
-    memset(result,0, 6);
-    return false;
+bool ClockGetTime(clock_t self, clock_time_t * result){
+    memcpy(result, &self->current_time, sizeof(clock_time_t));
+    return self->valid;
+}
+
+bool ClockSetTime(clock_t self, const clock_time_t * new_time){
+    self->valid = true;
+    memcpy(&self->current_time, new_time, sizeof(clock_time_t));
+    return self->valid;
 }
 /* === End of documentation ======================================================================================== */
