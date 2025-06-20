@@ -30,6 +30,7 @@ SPDX-License-Identifier: MIT
 #include "poncho.h"
 #include "screen.h"
 #include "edu_ciaa.h"
+#include <stdlib.h>
 
 
 /* === Macros definitions ========================================================================================== */
