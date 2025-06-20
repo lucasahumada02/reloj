@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
+Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,30 +17,16 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file test_clock.c
+/** @file clock.c
  ** @brief Plantilla para la creación de archivos de código fuente en lenguaje C
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-//#include "plantilla.h"
-#include "unity.h"
 #include "clock.h"
+#include <stddef.h>
+#include <string.h>
 
-
-/**
- * Al inicializar el reloj está en 00:00 y con hora invalida.
- * Después de n ciclos de reloj la hora avanza un segundo, diez
- * segundos, un minutos, diez minutos, una hora, diez horas y un día completo.
- * Tratar de ajustar la hora el reloj con valores invalidos y verificar que los rechaza.
- * Fijar la hora de la alarma y consultarla.
- * Fijar la alarma y avanzar el reloj para que suene.
- * Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
- * Hacer sonar la alarma y posponerla.
- * Hacer sonar la alarma y cancelarla hasta el otro dia.
- * Probar getTime con NULL como argumento.
- * Hacer una prueba con frecuencias diferentes.
- */
 /* === Macros definitions ========================================================================================== */
 
 /* === Private data type declarations ============================================================================== */
@@ -54,14 +40,13 @@ SPDX-License-Identifier: MIT
 /* === Private function definitions ================================================================================ */
 
 /* === Public function implementation ============================================================================== */
-//Al inicializar el reloj está en 00:00 y con hora invalida.
-void test_set_up_with_invalid_time(void){
-    clock_time_t current_time = {
-        .bcd = {1,2,3,4,5,6},
-    };
+clock_t ClockCreate(void){
+    return NULL;
+}
 
-    clock_t clock = ClockCreate();
-    TEST_ASSERT_FALSE(ClockGetTime(clock, &current_time));
-    TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
+bool ClockGetTime(clock_t clock, clock_time_t * result){
+    (void) clock;
+    memset(result,0, 6);
+    return false;
 }
 /* === End of documentation ======================================================================================== */
