@@ -45,7 +45,8 @@ struct clock_s {
 /* === Private function definitions ================================================================================ */
 
 /* === Public function implementation ============================================================================== */
-clock_t ClockCreate(void){
+clock_t ClockCreate(uint16_t ticks_per_second){
+    (void) ticks_per_second;
     static struct clock_s self[1];
     memset(self, 0, sizeof(struct clock_s));
     self->valid = false;
@@ -62,4 +63,10 @@ bool ClockSetTime(clock_t self, const clock_time_t * new_time){
     memcpy(&self->current_time, new_time, sizeof(clock_time_t));
     return self->valid;
 }
+
+void ClockNewTick(clock_t self){
+    self->current_time.time.seconds[0]=1;
+}
+
+
 /* === End of documentation ======================================================================================== */

@@ -23,10 +23,9 @@ SPDX-License-Identifier: MIT
 
 /* === Headers files inclusions ==================================================================================== */
 
-//#include "plantilla.h"
-#include "unity.h"
+// #include "plantilla.h"
 #include "clock.h"
-
+#include "unity.h"
 
 /**
  * Al inicializar el reloj está en 00:00 y con hora invalida.
@@ -44,6 +43,8 @@ SPDX-License-Identifier: MIT
  */
 /* === Macros definitions ========================================================================================== */
 
+#define CLOCK_TICKS_PER_SECOND 5
+
 /* === Private data type declarations ============================================================================== */
 
 /* === Private function declarations =============================================================================== */
@@ -54,29 +55,60 @@ SPDX-License-Identifier: MIT
 
 /* === Private function definitions ================================================================================ */
 
+
+void SimulateSeconds(clock_t clock, uint8_t seconds){
+    for (uint8_t i = 0; i < CLOCK_TICKS_PER_SECOND * seconds; i++)
+    {
+        ClockNewTick(clock);
+    }
+    
+}
+
 /* === Public function implementation ============================================================================== */
-//Al inicializar el reloj está en 00:00 y con hora invalida.
-void test_set_up_with_invalid_time(void){
+// Al inicializar el reloj está en 00:00 y con hora invalida.
+void test_set_up_with_invalid_time(void) {
     clock_time_t current_time = {
-        .bcd = {1,2,3,4,5,6},
+        .bcd = {1, 2, 3, 4, 5, 6},
     };
 
-    clock_t clock = ClockCreate();
+    clock_t clock = ClockCreate(CLOCK_TICKS_PER_SECOND);
     TEST_ASSERT_FALSE(ClockGetTime(clock, &current_time));
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
 }
 
-//Al ajustar la hora el reloj queda en hora y es valida.
-void test_set_up_and_adjust_with_valid_time(void){
+// Al ajustar la hora el reloj queda en hora y es valida.
+void test_set_up_and_adjust_with_valid_time(void) {
     static const clock_time_t new_time = {.time = {
-            .seconds = {4, 5} , .minutes={3, 0}, .hours={1, 4},
-        }
-    };
+                                              .seconds = {4, 5},
+                                              .minutes = {3, 0},
+                                              .hours = {1, 4},
+                                          }};
     clock_time_t current_time = {0};
 
-    clock_t clock = ClockCreate();
+    clock_t clock = ClockCreate(CLOCK_TICKS_PER_SECOND);
     TEST_ASSERT_TRUE(ClockSetTime(clock, &new_time));
     TEST_ASSERT_TRUE(ClockGetTime(clock, &current_time));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(new_time.bcd, current_time.bcd, 6);
+}
+
+// Después de n ciclos de reloj la hora avanza un segundo
+void test_clock_advance_one_second(void) {
+    clock_time_t current_time = {0};
+    static const clock_time_t espected_value = {.time = {
+                                              .seconds = {1, 0},
+                                              .minutes = {0, 0},
+                                              .hours = {0, 0},
+                                          }};
+   
+
+    clock_t clock = ClockCreate(CLOCK_TICKS_PER_SECOND);
+
+    // Set initial time to 00:00:00
+    ClockSetTime(clock, &(clock_time_t){0});
+    SimulateSeconds(clock, 1);
+    ClockGetTime(clock, &current_time);
+    //TEST_ASSERT_EQUAL_UINT8_ARRAY(espected_value.bcd, current_time.bcd, 6);
+    TEST_ASSERT_EQUAL_MEMORY(&espected_value, &current_time, sizeof(clock_time_t));
+
 }
 /* === End of documentation ======================================================================================== */
