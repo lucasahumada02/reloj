@@ -38,11 +38,21 @@ SPDX-License-Identifier: MIT
 /* === Public variable definitions ================================================================================= */
 
 struct clock_s {
+    uint16_t clock_ticks;
     clock_time_t current_time;
     bool valid;
 };
 
 /* === Private function definitions ================================================================================ */
+
+static bool IsValidTime(const clock_time_t * time) {
+    bool is_valid = true;
+    if (time->time.hours[1] > 2 || (time->time.hours[1] == 2 && time->time.hours[0] > 3) || time->time.minutes[1] > 5 ||
+        time->time.minutes[0] > 9 || time->time.seconds[1] > 5 || time->time.seconds[0] > 9) {
+        is_valid = false;
+    }
+    return is_valid;
+}
 
 /* === Public function implementation ============================================================================== */
 clock_t ClockCreate(uint16_t ticks_per_second){
@@ -54,18 +64,75 @@ clock_t ClockCreate(uint16_t ticks_per_second){
 }
 
 bool ClockGetTime(clock_t self, clock_time_t * result){
-    memcpy(result, &self->current_time, sizeof(clock_time_t));
+    if (result != NULL)
+    {
+        memcpy(result, &self->current_time, sizeof(clock_time_t));
+    } else
+    {
+        return false;
+    }
+
     return self->valid;
 }
 
 bool ClockSetTime(clock_t self, const clock_time_t * new_time){
-    self->valid = true;
-    memcpy(&self->current_time, new_time, sizeof(clock_time_t));
+    if (IsValidTime(new_time))
+    {
+        self->valid = true;
+        memcpy(&self->current_time, new_time, sizeof(clock_time_t));
+    }else
+    {
+        self->valid = false;
+    }
     return self->valid;
 }
 
 void ClockNewTick(clock_t self){
-    self->current_time.time.seconds[0]=1;
+    self->clock_ticks++;
+
+    // Procesar solo cuando se acumulen 5 ticks (1 segundo)
+    if (self->clock_ticks < 5) {
+        return;
+    }
+    self->clock_ticks = 0;
+
+    //Segundos
+    self->current_time.time.seconds[0]++;
+    if (self->current_time.time.seconds[0] > 9) {
+        self->current_time.time.seconds[0] = 0;
+        self->current_time.time.seconds[1]++;
+
+        if (self->current_time.time.seconds[1] > 5) {
+            self->current_time.time.seconds[1] = 0;
+
+            //Minutos
+            self->current_time.time.minutes[0]++;
+
+            if (self->current_time.time.minutes[0] > 9) {
+                self->current_time.time.minutes[0] = 0;
+                self->current_time.time.minutes[1]++;
+
+                if (self->current_time.time.minutes[1] > 5) {
+                    self->current_time.time.minutes[1] = 0;
+
+                    //Horas
+                    self->current_time.time.hours[0]++;
+
+                    if ((self->current_time.time.hours[1] < 2 && self->current_time.time.hours[0] > 9) ||
+                        (self->current_time.time.hours[1] == 2 && self->current_time.time.hours[0] > 3)) {
+                        self->current_time.time.hours[0] = 0;
+                        self->current_time.time.hours[1]++;
+
+                        // Si supera 23, reiniciar a 00:00:00
+                        if (self->current_time.time.hours[1] > 2) {
+                            self->current_time.time.hours[0] = 0;
+                            self->current_time.time.hours[1] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
