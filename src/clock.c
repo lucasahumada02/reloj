@@ -35,13 +35,17 @@ SPDX-License-Identifier: MIT
 
 /* === Private variable definitions ================================================================================ */
 
-/* === Public variable definitions ================================================================================= */
-
 struct clock_s {
     uint16_t clock_ticks;
     clock_time_t current_time;
-    bool valid;
+    clock_time_t alarm_time;
+    bool valid_time;
+    bool valid_alarm;
 };
+
+
+/* === Public variable definitions ================================================================================= */
+
 
 /* === Private function definitions ================================================================================ */
 
@@ -59,7 +63,7 @@ clock_t ClockCreate(uint16_t ticks_per_second){
     (void) ticks_per_second;
     static struct clock_s self[1];
     memset(self, 0, sizeof(struct clock_s));
-    self->valid = false;
+    self->valid_time = false;
     return self;
 }
 
@@ -72,19 +76,19 @@ bool ClockGetTime(clock_t self, clock_time_t * result){
         return false;
     }
 
-    return self->valid;
+    return self->valid_time;
 }
 
 bool ClockSetTime(clock_t self, const clock_time_t * new_time){
     if (IsValidTime(new_time))
     {
-        self->valid = true;
+        self->valid_time = true;
         memcpy(&self->current_time, new_time, sizeof(clock_time_t));
     }else
     {
-        self->valid = false;
+        self->valid_time = false;
     }
-    return self->valid;
+    return self->valid_time;
 }
 
 void ClockNewTick(clock_t self){
@@ -135,5 +139,14 @@ void ClockNewTick(clock_t self){
     }
 }
 
+bool ClockSetAlarm(clock_t self, const clock_time_t * alarm_time){
+    memcpy(&self->alarm_time, alarm_time, sizeof(clock_time_t));
+    self->valid_alarm = true;
+    return self->valid_alarm;
+}
 
+bool ClockGetAlarm(clock_t self, clock_time_t * alarm_time){
+    memcpy(alarm_time, &self->alarm_time, sizeof(clock_time_t));
+    return self->valid_alarm;
+}
 /* === End of documentation ======================================================================================== */

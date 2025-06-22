@@ -32,7 +32,7 @@ SPDX-License-Identifier: MIT
  * -Al ajustar la hora el reloj queda en hora y es valida.
  * -Después de n ciclos de reloj la hora avanza un segundo, diez
  *  segundos, un minutos, diez minutos, una hora, diez horas y un día completo.
- * Tratar de ajustar la hora el reloj con valores invalidos y verificar que los rechaza.
+ * -Tratar de ajustar la hora el reloj con valores invalidos y verificar que los rechaza.
  * Fijar la hora de la alarma y consultarla.
  * Fijar la alarma y avanzar el reloj para que suene.
  * Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
@@ -44,7 +44,7 @@ SPDX-License-Identifier: MIT
 /* === Macros definitions ========================================================================================== */
 
 #define CLOCK_TICKS_PER_SECOND 5
-#define TEST_ASSERT_TIME( hours_tens, hours_units, minutes_tens, minutes_units,seconds_tens, seconds_units, current_time) \
+#define TEST_ASSERT_TIME(hours_tens, hours_units, minutes_tens, minutes_units,seconds_tens, seconds_units, current_time) \
     clock_time_t current_time = {0};  \
     TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time."); \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_units, current_time.bcd[0], "Diference in unit seconds."); \
@@ -53,6 +53,16 @@ SPDX-License-Identifier: MIT
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_tens, current_time.bcd[3],"Diference in tens minutes."); \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_units, current_time.bcd[4],"Diference in unit hours."); \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_tens, current_time.bcd[5],"Diference in tens hours.");
+
+#define TEST_ASSERT_ALARM(hour_tens, hour_units, minutes_tens, minutes_units, seconds_tens, seconds_units) \
+    clock_time_t alarm_time = {0}; \
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetAlarm(clock, &alarm_time), "Clock has invalid time"); \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_units, alarm_time.bcd[0], "Diference in unit seconds"); \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_tens, alarm_time.bcd[1], "Diference in tens seconds"); \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_units, alarm_time.bcd[2], "Diference in unit minutes"); \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_tens, alarm_time.bcd[3], "Diference in tens minutes"); \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hour_units, alarm_time.bcd[4], "Diference in unit hours"); \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hour_tens, alarm_time.bcd[5], "Diference in tens hours");
 
 /* === Private data type declarations ============================================================================== */
 
@@ -171,5 +181,15 @@ void test_clock_advance_one_day(void) {
 void test_set_up_and_adjust_with_invalid_time(void) {
     static const clock_time_t newTime = {.bcd = {9, 9, 9, 9, 9, 9}};
     TEST_ASSERT_FALSE(ClockSetTime(clock, &newTime));
+}
+
+//Fijar la hora de la alarma y consultarla.
+void test_clock_set_and_get_alarm_time(void) {
+    static const clock_time_t alarm_t = {.time = {
+                                             .hours = {9, 1}, .minutes = {0, 0}, .seconds = {0, 0}
+                                         }};
+
+    TEST_ASSERT_TRUE(ClockSetAlarm(clock, &alarm_t));
+    TEST_ASSERT_ALARM(1, 9, 0, 0, 0, 0); 
 }
 /* === End of documentation ======================================================================================== */
