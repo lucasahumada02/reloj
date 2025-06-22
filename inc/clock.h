@@ -75,6 +75,7 @@ bool ClockIsAlarmActive(clock_t clock);
 
 void ClockDisableAlarm(clock_t clock);
 
+void ClockSnoozeAlarm(clock_t clock);
 
 /* === End of conditional blocks =================================================================================== */
 

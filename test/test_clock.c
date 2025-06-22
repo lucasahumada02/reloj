@@ -36,7 +36,7 @@ SPDX-License-Identifier: MIT
  * -Fijar la hora de la alarma y consultarla.
  * -Fijar la alarma y avanzar el reloj para que suene.
  * -Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
- * Hacer sonar la alarma y posponerla.
+ * -Hacer sonar la alarma y posponerla.
  * Hacer sonar la alarma y cancelarla hasta el otro dia.
  * Probar getTime con NULL como argumento.
  * Hacer una prueba con frecuencias diferentes.
@@ -77,8 +77,8 @@ clock_t clock;
 /* === Private function definitions ================================================================================ */
 
 
-static void SimulateSeconds(clock_t clock, uint8_t seconds){
-    for (uint8_t i = 0; i < CLOCK_TICKS_PER_SECOND * seconds; i++)
+static void SimulateSeconds(clock_t clock, uint16_t seconds){
+    for (uint16_t i = 0; i < CLOCK_TICKS_PER_SECOND * seconds; i++)
     {
         ClockNewTick(clock);
     } 
@@ -221,5 +221,24 @@ void test_clock_set_alarm_and_disable(void) {
 }
 
 //Hacer sonar la alarma y posponerla.
+void test_clock_ring_and_snooze(void) {
+    ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} // 09:59:45
+    });
+
+    static const clock_time_t alarm_t = {.time = {
+        .hours = {0, 1}, .minutes = {0, 0}, .seconds = {0, 0} // 10:00:00
+    }};
+
+    ClockSetAlarm(clock, &alarm_t);
+    SimulateSeconds(clock, 15); 
+    TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
+    ClockSnoozeAlarm(clock);
+    TEST_ASSERT_ALARM(1, 0, 0, 5, 0, 0);
+    SimulateSeconds(clock, 300);
+    TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
+}
+
+//Hacer sonar la alarma y cancelarla hasta el otro dia.
 
 /* === End of documentation ======================================================================================== */

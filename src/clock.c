@@ -177,5 +177,36 @@ void ClockDisableAlarm(clock_t self) {
     self->alarm_triggered = false;
 }
 
+void ClockSnoozeAlarm(clock_t self) {
+    self->alarm_triggered = false;
+
+    self->alarm_time.time.seconds[0] = 0;
+    self->alarm_time.time.seconds[1] = 0;
+
+    self->alarm_time.time.minutes[0] += 5;
+
+    if (self->alarm_time.time.minutes[0] > 9) {
+        self->alarm_time.time.minutes[0] -= 10;
+
+        self->alarm_time.time.minutes[1]++;
+        if (self->alarm_time.time.minutes[1] > 5) {
+            self->alarm_time.time.minutes[1] = 0;
+
+            self->alarm_time.time.hours[0]++;
+            if ((self->alarm_time.time.hours[1] < 2 && self->alarm_time.time.hours[0] > 9) ||
+                (self->alarm_time.time.hours[1] == 2 && self->alarm_time.time.hours[0] > 3)) {
+                self->alarm_time.time.hours[0] = 0;
+
+                self->alarm_time.time.hours[1]++;
+                if (self->alarm_time.time.hours[1] > 2) {
+                    self->alarm_time.time.hours[1] = 0;
+                    self->alarm_time.time.hours[0] = 0;
+                }
+            }
+        }
+    }
+}
+
+
 
 /* === End of documentation ======================================================================================== */
