@@ -50,6 +50,8 @@ typedef union{
 }clock_time_t;
 
 typedef struct clock_s * clock_t;
+
+
 /* === Public function declarations ================================================================================ */
 
 /**
@@ -69,6 +71,7 @@ bool ClockSetAlarm(clock_t clock, const clock_time_t * alarm_time);
 
 bool ClockGetAlarm(clock_t clock, clock_time_t * alarm_time);
 
+bool ClockIsAlarmActive(clock_t clock);
 
 /* === End of conditional blocks =================================================================================== */
 

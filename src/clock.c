@@ -41,6 +41,8 @@ struct clock_s {
     clock_time_t alarm_time;
     bool valid_time;
     bool valid_alarm;
+    bool alarm_enabled;
+    bool alarm_triggered;
 };
 
 
@@ -64,6 +66,9 @@ clock_t ClockCreate(uint16_t ticks_per_second){
     static struct clock_s self[1];
     memset(self, 0, sizeof(struct clock_s));
     self->valid_time = false;
+    self->valid_alarm = false;
+    self->alarm_enabled = false;
+    self->alarm_triggered = false;
     return self;
 }
 
@@ -137,11 +142,26 @@ void ClockNewTick(clock_t self){
             }
         }
     }
+    if (self->alarm_enabled && self->valid_alarm) {
+    bool equal = true;
+    for (int i = 0; i < 6; i++) {
+        if (self->current_time.bcd[i] != self->alarm_time.bcd[i]) {
+            equal = false;
+            break;
+        }
+    }
+    if (equal) {
+        self->alarm_triggered = true;
+    }
+}
+
 }
 
 bool ClockSetAlarm(clock_t self, const clock_time_t * alarm_time){
     memcpy(&self->alarm_time, alarm_time, sizeof(clock_time_t));
     self->valid_alarm = true;
+    self->alarm_enabled = true;
+    self->alarm_triggered = false;
     return self->valid_alarm;
 }
 
@@ -149,4 +169,10 @@ bool ClockGetAlarm(clock_t self, clock_time_t * alarm_time){
     memcpy(alarm_time, &self->alarm_time, sizeof(clock_time_t));
     return self->valid_alarm;
 }
+
+bool ClockIsAlarmActive(clock_t self) {
+    return self->alarm_enabled && self->alarm_triggered;
+}
+
+
 /* === End of documentation ======================================================================================== */

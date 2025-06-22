@@ -33,7 +33,7 @@ SPDX-License-Identifier: MIT
  * -Después de n ciclos de reloj la hora avanza un segundo, diez
  *  segundos, un minutos, diez minutos, una hora, diez horas y un día completo.
  * -Tratar de ajustar la hora el reloj con valores invalidos y verificar que los rechaza.
- * Fijar la hora de la alarma y consultarla.
+ * -Fijar la hora de la alarma y consultarla.
  * Fijar la alarma y avanzar el reloj para que suene.
  * Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
  * Hacer sonar la alarma y posponerla.
@@ -192,4 +192,20 @@ void test_clock_set_and_get_alarm_time(void) {
     TEST_ASSERT_TRUE(ClockSetAlarm(clock, &alarm_t));
     TEST_ASSERT_ALARM(1, 9, 0, 0, 0, 0); 
 }
+
+//Fijar la alarma y avanzar el reloj para que suene.
+void test_clock_set_alarm_and_trigger(void) {
+     static const clock_time_t alarm_t = {.time = {
+        .hours = {0, 1}, .minutes = {0, 0}, .seconds = {0, 0} //10:00:00
+    }};
+
+    ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} //09:59:45
+    });
+    ClockSetAlarm(clock, &alarm_t);
+    SimulateSeconds(clock, 15);
+    TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
+}
+
+
 /* === End of documentation ======================================================================================== */
