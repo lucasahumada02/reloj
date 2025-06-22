@@ -34,8 +34,8 @@ SPDX-License-Identifier: MIT
  *  segundos, un minutos, diez minutos, una hora, diez horas y un día completo.
  * -Tratar de ajustar la hora el reloj con valores invalidos y verificar que los rechaza.
  * -Fijar la hora de la alarma y consultarla.
- * Fijar la alarma y avanzar el reloj para que suene.
- * Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
+ * -Fijar la alarma y avanzar el reloj para que suene.
+ * -Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
  * Hacer sonar la alarma y posponerla.
  * Hacer sonar la alarma y cancelarla hasta el otro dia.
  * Probar getTime con NULL como argumento.
@@ -198,7 +198,6 @@ void test_clock_set_alarm_and_trigger(void) {
      static const clock_time_t alarm_t = {.time = {
         .hours = {0, 1}, .minutes = {0, 0}, .seconds = {0, 0} //10:00:00
     }};
-
     ClockSetTime(clock, &(clock_time_t){
         .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} //09:59:45
     });
@@ -207,5 +206,20 @@ void test_clock_set_alarm_and_trigger(void) {
     TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
 }
 
+//Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
+void test_clock_set_alarm_and_disable(void) {
+   ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} //09:59:45
+    });
+    static const clock_time_t alarm_t = {.time = {
+        .hours = {0, 1}, .minutes = {0, 0}, .seconds = {0, 0} //10:00:00
+    }};
+    TEST_ASSERT_TRUE(ClockSetAlarm(clock, &alarm_t));
+    ClockDisableAlarm(clock);
+    SimulateSeconds(clock, 15);
+    TEST_ASSERT_FALSE(ClockIsAlarmActive(clock));
+}
+
+//Hacer sonar la alarma y posponerla.
 
 /* === End of documentation ======================================================================================== */

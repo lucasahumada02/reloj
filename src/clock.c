@@ -98,8 +98,6 @@ bool ClockSetTime(clock_t self, const clock_time_t * new_time){
 
 void ClockNewTick(clock_t self){
     self->clock_ticks++;
-
-    // Procesar solo cuando se acumulen 5 ticks (1 segundo)
     if (self->clock_ticks < 5) {
         return;
     }
@@ -172,6 +170,11 @@ bool ClockGetAlarm(clock_t self, clock_time_t * alarm_time){
 
 bool ClockIsAlarmActive(clock_t self) {
     return self->alarm_enabled && self->alarm_triggered;
+}
+
+void ClockDisableAlarm(clock_t self) {
+    self->alarm_enabled = false;
+    self->alarm_triggered = false;
 }
 
 

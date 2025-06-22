@@ -73,6 +73,9 @@ bool ClockGetAlarm(clock_t clock, clock_time_t * alarm_time);
 
 bool ClockIsAlarmActive(clock_t clock);
 
+void ClockDisableAlarm(clock_t clock);
+
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus
