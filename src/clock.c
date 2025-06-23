@@ -66,8 +66,8 @@ static bool IsValidTime(const clock_time_t * time) {
 clock_t ClockCreate(uint16_t ticks_per_second){
     
     static struct clock_s self[1];
-    self->ticks_per_second = ticks_per_second;
     memset(self, 0, sizeof(struct clock_s));
+    self->ticks_per_second = ticks_per_second;
     self->valid_time = false;
     self->valid_alarm = false;
     self->alarm_enabled = false;
@@ -101,7 +101,7 @@ bool ClockSetTime(clock_t self, const clock_time_t * new_time){
 
 void ClockNewTick(clock_t self){
     self->clock_ticks++;
-    if (self->clock_ticks < 5) {
+    if (self->clock_ticks < self->ticks_per_second) {
         return;
     }
     self->clock_ticks = 0;

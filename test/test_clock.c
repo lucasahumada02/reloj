@@ -37,9 +37,9 @@ SPDX-License-Identifier: MIT
  * -Fijar la alarma y avanzar el reloj para que suene.
  * -Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
  * -Hacer sonar la alarma y posponerla.
- * Hacer sonar la alarma y cancelarla hasta el otro dia.
- * Probar getTime con NULL como argumento.
- * Hacer una prueba con frecuencias diferentes.
+ * -Hacer sonar la alarma y cancelarla hasta el otro dia.
+ * -Probar getTime con NULL como argumento.
+ * -Hacer una prueba con frecuencias diferentes.
  */
 /* === Macros definitions ========================================================================================== */
 
@@ -259,7 +259,7 @@ void test_clock_ring_and_cancel_alarm_today(void) {
     ClockSetTime(clock, &(clock_time_t){
         .time = {.hours = {3, 2}, .minutes = {9, 5}, .seconds = {9, 5}} // 23:59:59
     });
-    SimulateSeconds(clock, 1);  // 00:00:00 se debe resetear alarm_cancelled_today
+    SimulateSeconds(clock, 1);  // 00:00:00 se resetea alarm_cancelled_today
 
     ClockSetTime(clock, &(clock_time_t){
         .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} // 09:59:45
@@ -268,5 +268,20 @@ void test_clock_ring_and_cancel_alarm_today(void) {
     TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
 }
 
+//Probar getTime con NULL como argumento.
+void test_clock_get_time_with_null_argument(void) {
+    clock_time_t *null_time = NULL;
+    TEST_ASSERT_FALSE(ClockGetTime(clock, null_time));
+}
+
+//Hacer una prueba con frecuencias diferentes.
+void test_clock_with_different_tick_frequency(void) {
+    clock = ClockCreate(10);
+    ClockSetTime(clock, &(clock_time_t){0});
+    for (int i = 0; i < 10; i++) {
+        ClockNewTick(clock);
+    }
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 1, current_time);
+}
 
 /* === End of documentation ======================================================================================== */
