@@ -239,6 +239,34 @@ void test_clock_ring_and_snooze(void) {
     TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
 }
 
-//Hacer sonar la alarma y cancelarla hasta el otro dia.
+// Hacer sonar la alarma y cancelarla hasta el otro día
+void test_clock_ring_and_cancel_alarm_today(void) {
+    ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} // 09:59:45
+    });
+    static const clock_time_t alarm = {.time = {
+        .hours = {0, 1}, .minutes = {0, 0}, .seconds = {0, 0} // 10:00:00
+    }};
+    ClockSetAlarm(clock, &alarm);
+    SimulateSeconds(clock, 15); // ahora son 10:00:00
+    TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
+
+    ClockCancelAlarmToday(clock);
+    TEST_ASSERT_FALSE(ClockIsAlarmActive(clock));
+    SimulateSeconds(clock, 3600);
+    TEST_ASSERT_FALSE(ClockIsAlarmActive(clock));
+
+    ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {3, 2}, .minutes = {9, 5}, .seconds = {9, 5}} // 23:59:59
+    });
+    SimulateSeconds(clock, 1);  // 00:00:00 se debe resetear alarm_cancelled_today
+
+    ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} // 09:59:45
+    });
+    SimulateSeconds(clock, 15); // ahora son 10:00:00 otra vez
+    TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
+}
+
 
 /* === End of documentation ======================================================================================== */

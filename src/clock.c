@@ -37,12 +37,14 @@ SPDX-License-Identifier: MIT
 
 struct clock_s {
     uint16_t clock_ticks;
+    uint16_t ticks_per_second;
     clock_time_t current_time;
     clock_time_t alarm_time;
     bool valid_time;
     bool valid_alarm;
     bool alarm_enabled;
     bool alarm_triggered;
+    bool alarm_cancelled_today;
 };
 
 
@@ -62,8 +64,9 @@ static bool IsValidTime(const clock_time_t * time) {
 
 /* === Public function implementation ============================================================================== */
 clock_t ClockCreate(uint16_t ticks_per_second){
-    (void) ticks_per_second;
+    
     static struct clock_s self[1];
+    self->ticks_per_second = ticks_per_second;
     memset(self, 0, sizeof(struct clock_s));
     self->valid_time = false;
     self->valid_alarm = false;
@@ -134,6 +137,7 @@ void ClockNewTick(clock_t self){
                         if (self->current_time.time.hours[1] > 2) {
                             self->current_time.time.hours[0] = 0;
                             self->current_time.time.hours[1] = 0;
+                            self->alarm_cancelled_today = false;
                         }
                     }
                 }
@@ -148,7 +152,7 @@ void ClockNewTick(clock_t self){
             break;
         }
     }
-    if (equal) {
+    if (equal && !self->alarm_cancelled_today) {
         self->alarm_triggered = true;
     }
 }
@@ -207,6 +211,10 @@ void ClockSnoozeAlarm(clock_t self) {
     }
 }
 
+void ClockCancelAlarmToday(clock_t self) {
+    self->alarm_triggered = false;
+    self->alarm_cancelled_today = true;
+}
 
 
 /* === End of documentation ======================================================================================== */

@@ -77,6 +77,9 @@ void ClockDisableAlarm(clock_t clock);
 
 void ClockSnoozeAlarm(clock_t clock);
 
+void ClockCancelAlarmToday(clock_t clock);
+
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus
