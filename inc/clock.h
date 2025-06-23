@@ -21,7 +21,7 @@ SPDX-License-Identifier: MIT
 #define CLOCK_H_
 
 /** @file clock.h
- ** @brief Plantilla para la creación de archivos de de cabeceras en lenguaje C
+ ** @brief Módulo para la gestión de un reloj digital con soporte de alarma, snooze y cancelación diaria.
  **/
 
 /* === Headers files inclusions ==================================================================================== */
@@ -40,6 +40,10 @@ extern "C" {
 /* === Public data type declarations =============================================================================== */
 
 /* === Public variable declarations ================================================================================ */
+
+/**
+ * @brief Representación de tiempo en formato BCD.
+ */
 typedef union{
     struct {
         uint8_t seconds[2];
@@ -49,34 +53,106 @@ typedef union{
     uint8_t bcd[6];
 }clock_time_t;
 
+/**
+ * @brief Puntero a la instancia del reloj.
+ */
 typedef struct clock_s * clock_t;
 
 
 /* === Public function declarations ================================================================================ */
 
 /**
- * @brief 
- * 
- * @return clock_t 
+ * @brief Crea e inicializa una nueva instancia del reloj.
+ *
+ * @param ticks_per_second Cantidad de ticks necesarios para considerar un segundo completo.
+ * @return clock_t Instancia del reloj creada.
  */
+
 clock_t ClockCreate(uint16_t ticks_per_second);
 
+/**
+ * @brief Obtiene la hora actual del reloj.
+ *
+ * @param clock Instancia del reloj.
+ * @param result Puntero donde se guardará la hora actual.
+ * @return true Si la hora es válida.
+ * @return false Si la hora aún no fue configurada o result es NULL.
+ */
 bool ClockGetTime(clock_t clock, clock_time_t * result);
 
+/**
+ * @brief Establece una nueva hora en el reloj.
+ *
+ * @param clock Instancia del reloj.
+ * @param new_time Hora a establecer.
+ * @return true Si la hora es válida y se configuró correctamente.
+ * @return false Si la hora es inválida.
+ */
 bool ClockSetTime(clock_t clock, const clock_time_t * new_time);
 
+
+/**
+ * @brief Notifica al reloj que ocurrió un nuevo tick.
+ *
+ * Se deben acumular la cantidad de ticks por segundo para que el reloj avance un segundo.
+ *
+ * @param clock Instancia del reloj.
+ */
 void ClockNewTick(clock_t clock);
 
+
+/**
+ * @brief Configura una nueva hora de alarma.
+ *
+ * @param clock Instancia del reloj.
+ * @param alarm_time Hora a la que debe sonar la alarma.
+ * @return true Si la alarma se configuró correctamente.
+ * @return false Si no se pudo configurar.
+ */
 bool ClockSetAlarm(clock_t clock, const clock_time_t * alarm_time);
 
+/**
+ * @brief Obtiene la hora configurada para la alarma.
+ *
+ * @param clock Instancia del reloj.
+ * @param alarm_time Puntero donde se guardará la hora de la alarma.
+ * @return true Si la alarma es válida.
+ * @return false Si no hay alarma configurada.
+ */
 bool ClockGetAlarm(clock_t clock, clock_time_t * alarm_time);
 
+/**
+ * @brief Indica si la alarma está activa (sonando).
+ *
+ * @param clock Instancia del reloj.
+ * @return true Si la alarma está activa.
+ * @return false Si no lo está.
+ */
 bool ClockIsAlarmActive(clock_t clock);
 
+/**
+ * @brief Deshabilita la alarma completamente.
+ *
+ * @param clock Instancia del reloj.
+ */
 void ClockDisableAlarm(clock_t clock);
 
+/**
+ * @brief Pospone la alarma 5 minutos a partir de la hora actual.
+ *
+ * Resetea la bandera de alarma activa y recalcula la hora de la próxima alarma.
+ *
+ * @param clock Instancia del reloj.
+ */
 void ClockSnoozeAlarm(clock_t clock);
 
+/**
+ * @brief Cancela la alarma solo por el día actual.
+ *
+ * Evita que suene nuevamente hasta que el reloj pase por 00:00:00.
+ *
+ * @param clock Instancia del reloj.
+ */
 void ClockCancelAlarmToday(clock_t clock);
 
 

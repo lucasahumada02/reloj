@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
+Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmial.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -18,7 +18,7 @@ SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
 /** @file clock.c
- ** @brief Plantilla para la creación de archivos de código fuente en lenguaje C
+ ** @brief Implementación del módulo de reloj digital con funciones de alarma, snooze y cancelación diaria.
  **/
 
 /* === Headers files inclusions ==================================================================================== */
@@ -35,16 +35,17 @@ SPDX-License-Identifier: MIT
 
 /* === Private variable definitions ================================================================================ */
 
+/** @brief Estructura interna del reloj */
 struct clock_s {
-    uint16_t clock_ticks;
-    uint16_t ticks_per_second;
-    clock_time_t current_time;
-    clock_time_t alarm_time;
-    bool valid_time;
-    bool valid_alarm;
-    bool alarm_enabled;
-    bool alarm_triggered;
-    bool alarm_cancelled_today;
+    uint16_t clock_ticks;             /**< Ticks acumulados desde el último segundo */
+    uint16_t ticks_per_second;       /**< Cantidad de ticks necesarios para avanzar un segundo */
+    clock_time_t current_time;       /**< Hora actual del reloj */
+    clock_time_t alarm_time;         /**< Hora configurada de la alarma */
+    bool valid_time;                 /**< Indica si la hora actual es válida */
+    bool valid_alarm;                /**< Indica si hay una alarma válida configurada */
+    bool alarm_enabled;              /**< Estado de habilitación de la alarma */
+    bool alarm_triggered;            /**< Indica si la alarma está sonando */
+    bool alarm_cancelled_today;      /**< Indica si la alarma fue cancelada hoy */
 };
 
 
@@ -53,6 +54,11 @@ struct clock_s {
 
 /* === Private function definitions ================================================================================ */
 
+/**
+ * @brief Verifica si un tiempo dado es válido en formato BCD.
+ * @param time Puntero a la estructura de tiempo a validar.
+ * @return true si el tiempo es válido, false en caso contrario.
+ */
 static bool IsValidTime(const clock_time_t * time) {
     bool is_valid = true;
     if (time->time.hours[1] > 2 || (time->time.hours[1] == 2 && time->time.hours[0] > 3) || time->time.minutes[1] > 5 ||

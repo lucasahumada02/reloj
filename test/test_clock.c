@@ -18,12 +18,11 @@ SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
 /** @file test_clock.c
- ** @brief Plantilla para la creación de archivos de código fuente en lenguaje C
+ ** @brief Pruebas unitarias del módulo de reloj digital usando Unity y Ceedling.
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-// #include "plantilla.h"
 #include "clock.h"
 #include "unity.h"
 
@@ -43,7 +42,15 @@ SPDX-License-Identifier: MIT
  */
 /* === Macros definitions ========================================================================================== */
 
+/**
+ * @def CLOCK_TICKS_PER_SECOND
+ * @brief Frecuencia base del reloj simulada para las pruebas.
+ */
 #define CLOCK_TICKS_PER_SECOND 5
+
+/**
+ * @brief Macro para validar el tiempo actual del reloj en formato BCD.
+ */
 #define TEST_ASSERT_TIME(hours_tens, hours_units, minutes_tens, minutes_units,seconds_tens, seconds_units, current_time) \
     clock_time_t current_time = {0};  \
     TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time."); \
@@ -54,6 +61,9 @@ SPDX-License-Identifier: MIT
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_units, current_time.bcd[4],"Diference in unit hours."); \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_tens, current_time.bcd[5],"Diference in tens hours.");
 
+/**
+ * @brief Macro para validar la hora configurada de la alarma.
+ */
 #define TEST_ASSERT_ALARM(hour_tens, hour_units, minutes_tens, minutes_units, seconds_tens, seconds_units) \
     clock_time_t alarm_time = {0}; \
     TEST_ASSERT_TRUE_MESSAGE(ClockGetAlarm(clock, &alarm_time), "Clock has invalid time"); \
@@ -71,12 +81,19 @@ SPDX-License-Identifier: MIT
 /* === Private variable definitions ================================================================================ */
 
 /* === Public variable definitions ================================================================================= */
-
+/**
+ * @brief Instancia global del reloj utilizada en las pruebas.
+ */
 clock_t clock;
 
 /* === Private function definitions ================================================================================ */
 
-
+/**
+ * @brief Simula el avance del reloj en segundos.
+ * 
+ * @param clock Instancia del reloj.
+ * @param seconds Cantidad de segundos a simular.
+ */
 static void SimulateSeconds(clock_t clock, uint16_t seconds){
     for (uint16_t i = 0; i < CLOCK_TICKS_PER_SECOND * seconds; i++)
     {
@@ -84,6 +101,9 @@ static void SimulateSeconds(clock_t clock, uint16_t seconds){
     } 
 }
 
+/**
+ * @brief Setup que se ejecuta antes de cada test. Crea una nueva instancia del reloj.
+ */
 void setUp(void){
     clock = ClockCreate(CLOCK_TICKS_PER_SECOND);
 }
