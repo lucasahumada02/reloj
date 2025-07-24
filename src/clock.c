@@ -166,6 +166,10 @@ void ClockNewTick(clock_t self){
 }
 
 bool ClockSetAlarm(clock_t self, const clock_time_t * alarm_time){
+     if (!IsValidTime(alarm_time)) {
+        self->valid_alarm = false;
+        return false;
+    }
     memcpy(&self->alarm_time, alarm_time, sizeof(clock_time_t));
     self->valid_alarm = true;
     self->alarm_enabled = true;

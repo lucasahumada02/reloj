@@ -304,4 +304,11 @@ void test_clock_with_different_tick_frequency(void) {
     TEST_ASSERT_TIME(0, 0, 0, 0, 0, 1, current_time);
 }
 
+//Rechaza alarmas con horarios fuera del rango válido (como 99:99:99).
+void test_set_alarm_with_invalid_time_should_fail(void) {
+    static const clock_time_t invalid_alarm = {.bcd = {9, 9, 9, 9, 9, 9}};
+    TEST_ASSERT_FALSE(ClockSetAlarm(clock, &invalid_alarm));
+}
+
+
 /* === End of documentation ======================================================================================== */
