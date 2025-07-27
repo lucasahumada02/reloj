@@ -159,4 +159,15 @@ board_t BoardCreate(void){
 
     return board;
 }
+
+void SysTickInit(uint16_t ticks) {
+    __asm volatile("cpsid i"); // Deshabilita las interrupciones
+
+    SystemCoreClockUpdate(); // Actualiza la frecuencia del núcleo del sistema
+    SysTick_Config(SystemCoreClock / ticks); // Configura SysTick para interrupciones cada 1 ms
+
+    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1); // Establece la prioridad más baja para SysTick
+    
+    __asm volatile("cpsie i"); // Habilita las interrupciones
+}
 /* === End of documentation ======================================================================================== */

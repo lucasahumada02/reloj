@@ -40,6 +40,7 @@ SPDX-License-Identifier: MIT
 struct digital_output_s {
     uint8_t gpio; /*!< Puerto al que pertenece la salida */
     uint8_t bit;  /*!< Bit al que pertenece la salida */
+    bool state;   //!< Estado inicial de la salida
 };
 
 /*! Estrucutura que representa una entrada digital*/
@@ -61,24 +62,25 @@ struct digital_input_s
 
 /* === Public function implementation ============================================================================== */
 
-digital_output_t DigitalOutputCreate(uint8_t gpio, uint8_t bit){
+digital_output_t DigitalOutputCreate(uint8_t gpio, uint8_t bit, bool state){
     digital_output_t self = malloc(sizeof(struct digital_output_s));
     if (self != NULL)
     {
         self ->gpio = gpio;
         self ->bit = bit;
-        Chip_GPIO_SetPinState(LPC_GPIO_PORT, self->gpio, self->bit, false);
+        self->state = state;
+        Chip_GPIO_SetPinState(LPC_GPIO_PORT, self->gpio, self->bit, self->state);
         Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, self->gpio, self->bit, true);
     }
     return self;
 } 
 
 void DigitalOutputActivate(digital_output_t self){
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->gpio,self->bit,true);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->gpio,self->bit,!self->state);
 }
 
 void DigitalOutputDeactivate(digital_output_t self){
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->gpio,self->bit,false);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT,self->gpio,self->bit,self->state);
 }
 
 void DigitalOutputToggle(digital_output_t self){

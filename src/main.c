@@ -43,6 +43,7 @@
 #include <stdbool.h>
 #include "config.h"
 #include "bsp.h"
+#include "clock.h"
 
 /* === Macros definitions ====================================================================== */
 
@@ -65,13 +66,12 @@
 int main(void) { 
     int divisor  = 0;
     uint8_t value[4]= {1, 2, 3, 4};
-    uint8_t dots[4]={1,1,1,1};
+    //uint8_t dots[4]={1,1,1,1};
 
     board_t board = BoardCreate();
 
-    ScreenWriteBCD(board->screen, value, sizeof(value),dots);
+    ScreenWriteBCD(board->screen, value, sizeof(value));
     DisplayFlashDigits(board->screen, 0, 3, 50);
-    DisplayFlashDots(board->screen, 0, 3, 25);
 
     while (true) {
         // if (DigitalInputGetIsActive(board->key_push)) {
@@ -94,6 +94,11 @@ int main(void) {
         divisor++;
         if (divisor == 5) {
             divisor = 0;
+            ScreenToggleDot(board->screen, 0);
+            ScreenToggleDot(board->screen, 1);
+            ScreenToggleDot(board->screen, 2);
+            ScreenToggleDot(board->screen, 3);
+
          
         }
         ScreenRefresh(board->screen);

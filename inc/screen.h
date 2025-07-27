@@ -82,9 +82,8 @@ screen_t ScreenCreate(uint8_t digits, screen_driver_t driver);
  * @param screen Puntero a la instancia de la pantalla.
  * @param value Puntero al arreglo que contiene los valores BCD a escribir.
  * @param size Tamaño del arreglo de valores BCD.
- * @param dots Puntero al arreglo que indica si se debe mostrar el punto decimal en cada dígito.
  */
-void ScreenWriteBCD(screen_t screen, uint8_t * value, uint8_t size, uint8_t * dots);
+void ScreenWriteBCD(screen_t screen, uint8_t * value, uint8_t size);
 
 /**
  * @brief  Función para refrescar la pantalla, actualizando el dígito actual.
@@ -104,16 +103,8 @@ void ScreenRefresh(screen_t screen);
  */
 int DisplayFlashDigits(screen_t screen, uint8_t from, uint8_t to, uint16_t divisor);
 
-/**
- * @brief Función para hacer parpadear los puntos del display
- * 
- * @param display Puntero al descriptor de la pantalla con la que se quiere operar
- * @param from Posición del primer digito que se quiere hacer parpadear
- * @param to Posición del ultimo digito que se quiere hacer parpadear
- * @param frecuency Factor de división de la frecuencia de refresco para el parpadeo
- */
-int DisplayFlashDots(screen_t screen, uint8_t from, uint8_t to, uint16_t divisor);
 
+void ScreenToggleDot(screen_t screen, uint8_t position);
 
 /* === End of conditional blocks =================================================================================== */
 
