@@ -30,6 +30,7 @@ SPDX-License-Identifier: MIT
 #include <stdlib.h>
 #include <string.h>
 #include "config.h"
+#include "edu_ciaa.h"
 
 /* === Macros definitions ========================================================================================== */
 

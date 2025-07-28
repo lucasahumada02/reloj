@@ -136,7 +136,7 @@ board_t BoardCreate(void){
     if (board != NULL){ 
       DigitsInit();
       SegmentsInit();
-     board->screen = ScreenCreate(4, &screen_driver);
+      board->screen = ScreenCreate(4, &screen_driver);
 
       Chip_SCU_PinMuxSet(RGB_RED_PORT, RGB_RED_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | RGB_RED_FUNC);
       board->led_red = DigitalOutputCreate(RGB_RED_GPIO, RGB_RED_BIT, true);
@@ -147,23 +147,24 @@ board_t BoardCreate(void){
       Chip_SCU_PinMuxSet(RGB_BLUE_PORT, RGB_BLUE_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | RGB_BLUE_FUNC);
       board->led_blue = DigitalOutputCreate(RGB_BLUE_GPIO, RGB_BLUE_BIT, true);
      
+
       Chip_SCU_PinMuxSet(KEY_F1_PORT, KEY_F1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F1_FUNC);
-      board->increment = DigitalInputCreate(KEY_F1_GPIO, KEY_F1_BIT, true);
+      board->set_time = DigitalInputCreate(KEY_F1_GPIO, KEY_F1_BIT, false);
 
       Chip_SCU_PinMuxSet(KEY_F2_PORT, KEY_F2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F2_FUNC);
-      board->decrement = DigitalInputCreate(KEY_F2_GPIO, KEY_F2_BIT, true);
+      board->set_alarm = DigitalInputCreate(KEY_F2_GPIO, KEY_F2_BIT, false);
 
       Chip_SCU_PinMuxSet(KEY_F3_PORT, KEY_F3_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F3_FUNC);
-      board->set_time = DigitalInputCreate(KEY_F3_GPIO, KEY_F3_BIT, true);
+      board->decrement = DigitalInputCreate(KEY_F3_GPIO, KEY_F3_BIT, false);
 
       Chip_SCU_PinMuxSet(KEY_F4_PORT, KEY_F4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F4_FUNC);
-      board->set_alarm = DigitalInputCreate(KEY_F4_GPIO, KEY_F4_BIT, true);
+      board->increment = DigitalInputCreate(KEY_F4_GPIO, KEY_F4_BIT, false);
 
       Chip_SCU_PinMuxSet(KEY_ACCEPT_PORT, KEY_ACCEPT_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_ACCEPT_FUNC);
-      board->accept = DigitalInputCreate(KEY_ACCEPT_GPIO, KEY_ACCEPT_BIT, true);
+      board->accept = DigitalInputCreate(KEY_ACCEPT_GPIO, KEY_ACCEPT_BIT, false);
 
       Chip_SCU_PinMuxSet(KEY_CANCEL_PORT, KEY_CANCEL_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_CANCEL_FUNC);
-      board->cancel = DigitalInputCreate(KEY_CANCEL_GPIO, KEY_CANCEL_BIT, true);
+      board->cancel = DigitalInputCreate(KEY_CANCEL_GPIO, KEY_CANCEL_BIT, false);
     }
 
     return board;

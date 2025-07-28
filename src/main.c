@@ -39,74 +39,122 @@
  ** @{ */
 
 /* === Headers files inclusions =============================================================== */
-
-#include <stdbool.h>
-#include "config.h"
 #include "bsp.h"
-#include "clock.h"
+#include <stdint.h>
+#include <stdbool.h>
 
-/* === Macros definitions ====================================================================== */
-
-
-
-/* === Private data type declarations ========================================================== */
-
-/* === Private variable declarations =========================================================== */
-
-/* === Private function declarations =========================================================== */
-
-/* === Public variable definitions ============================================================= */
-
-/* === Private variable definitions ============================================================ */
-
-/* === Private function implementation ========================================================= */
-
-/* === Public function implementation ========================================================= */
-
-int main(void) { 
-    int divisor  = 0;
-    uint8_t value[4]= {1, 2, 3, 4};
-    //uint8_t dots[4]={1,1,1,1};
-
+int main(void) {
     board_t board = BoardCreate();
 
-    ScreenWriteBCD(board->screen, value, sizeof(value));
-    DisplayFlashDigits(board->screen, 0, 3, 50);
+    // Mostrar "----" al arrancar
+    uint8_t sin_tecla[4] = {10, 10, 10, 10};  // 10 = "-"
+    ScreenWriteBCD(board->screen, sin_tecla, 4);
 
     while (true) {
-        // if (DigitalInputGetIsActive(board->key_push)) {
-        //      DigitalOutputActivate(board->led_blue);
-        // } else {
-        //     DigitalOutputDeactivate(board->led_blue);
-        // }
+        uint8_t valor[4] = {10, 10, 10, 10};  // Default "-"
 
-        // if (DigitalInputWasActivated(board->key_toggle)) {
-        //     DigitalOutputToggle(board->led_red);
-        // }
-
-        // if (DigitalInputGetIsActive(board->key_turn_on)) {
-        //     DigitalOutputActivate(board->led_yellow);
-        // }
-        // if (DigitalInputGetIsActive(board->key_turn_off)) {
-        //     DigitalOutputDeactivate(board->led_yellow);
-        // }
-    
-        divisor++;
-        if (divisor == 5) {
-            divisor = 0;
-            ScreenToggleDot(board->screen, 0);
-            ScreenToggleDot(board->screen, 1);
-            ScreenToggleDot(board->screen, 2);
-            ScreenToggleDot(board->screen, 3);
-
-         
+        if (DigitalInputGetIsActive(board->accept)) {
+            valor[3] = 1;  // Mostrar "0001"
+        } else if (DigitalInputGetIsActive(board->cancel)) {
+            valor[3] = 2;
+        } else if (DigitalInputGetIsActive(board->set_time)) {
+            valor[3] = 3;
+        } else if (DigitalInputGetIsActive(board->set_alarm)) {
+            valor[3] = 4;
+        } else if (DigitalInputGetIsActive(board->increment)) {
+            valor[3] = 5;
+        } else if (DigitalInputGetIsActive(board->decrement)) {
+            valor[3] = 6;
         }
+
+        ScreenWriteBCD(board->screen, valor, 4);
         ScreenRefresh(board->screen);
-            for (int delay = 0; delay < 25000; delay++) {
-                __asm("NOP");
-            }
+
+        // Pequeño retardo para evitar parpadeos
+        for (volatile int i = 0; i < 10000; i++) {
+            __asm("NOP");
+        }
     }
 }
+
+
+// #include <stdbool.h>
+// #include "bsp.h"
+// #include "clock.h"
+
+// /* === Macros definitions ====================================================================== */
+
+// /* === Private data type declarations ========================================================== */
+
+// /* === Private variable declarations =========================================================== */
+
+// /* === Private function declarations =========================================================== */
+
+// /* === Public variable definitions ============================================================= */
+
+// /* === Private variable definitions ============================================================ */
+
+// /* === Private function implementation ========================================================= */
+
+// /* === Public function implementation ========================================================= */
+
+// int main(void) { 
+//     int divisor  = 0;
+//     uint8_t value[4]= {1, 2, 3, 4};
+//     //uint8_t dots[4]={1,1,1,1};
+
+//     board_t board = BoardCreate();
+
+//     ScreenWriteBCD(board->screen, value, sizeof(value));
+//     DisplayFlashDigits(board->screen, 0, 3, 50);
+
+//     while (true) {
+//         if (DigitalInputGetIsActive(board->accept)) {
+//             DigitalOutputActivate(board->led_red);
+//         } else {
+//             DigitalOutputDeactivate(board->led_red);
+//         }
+
+//         //   if (DigitalInputWasActivated(board->accept)) {
+//         //     DigitalOutputToggle(board->led_red);  // LED rojo = ACEPTAR
+//         // }
+
+//         // if (DigitalInputWasActivated(board->cancel)) {
+//         //     DigitalOutputToggle(board->led_green); // LED verde = CANCELAR
+//         // }
+
+//         // if (DigitalInputWasActivated(board->set_time)) {
+//         //     DigitalOutputToggle(board->led_blue);  // LED azul = F1
+//         // }
+
+//         // if (DigitalInputWasActivated(board->set_alarm)) {
+//         //     DigitalOutputActivate(board->buzzer);  // F2 = activa buzzer
+//         // }
+
+//         // if (DigitalInputWasActivated(board->increment)) {
+//         //     DigitalOutputDeactivate(board->buzzer); // F3 = apaga buzzer
+//         // }
+
+//         // // if (DigitalInputWasActivated(board->decrement)) {
+//         // //     DigitalOutputToggle(board->led_red);   // F4 = vuelve a togglear rojo
+//         // // }
+    
+//         divisor++;
+//         if (divisor == 5) {
+//             divisor = 0;
+//             ScreenToggleDot(board->screen, 0);
+//             ScreenToggleDot(board->screen, 1);
+//             ScreenToggleDot(board->screen, 2);
+//             ScreenToggleDot(board->screen, 3);
+
+         
+//         }
+//         ScreenRefresh(board->screen);
+//             for (int delay = 0; delay < 25000; delay++) {
+//                 __asm("NOP");
+//             }
+//     }
+// }
 
 /* === End of documentation ==================================================================== */
 

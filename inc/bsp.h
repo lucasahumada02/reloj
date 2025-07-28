@@ -54,7 +54,7 @@ extern "C" {
     digital_input_t accept;
     digital_input_t cancel;
     screen_t screen;
- }const * const board_t;
+ }const * board_t;
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */

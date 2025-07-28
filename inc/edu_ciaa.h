@@ -17,10 +17,10 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#ifndef EDU_CIAA_H_
+#define EDU_CIAA_H_
 
-/** @file config.h
+/** @file edu_ciaa.h
  ** @brief Plantilla para la creación de archivos de de cabeceras en lenguaje C
  **/
 
@@ -106,4 +106,4 @@ extern "C" {
 }
 #endif
 
-#endif /* CONFIG_H_ */
+#endif /* EDU_CIAA_H_ */
