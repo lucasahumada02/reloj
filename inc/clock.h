@@ -58,6 +58,14 @@ typedef union{
  */
 typedef struct clock_s * clock_t;
 
+/**
+ * @brief Prototipo para la función callback de la alarma.
+ *
+ * Esta función se invoca cuando la alarma suena.
+ *
+ * @param clock Instancia del reloj que dispara la alarma.
+ */
+typedef void (*clock_alarm_callback_t)(clock_t clock);
 
 /* === Public function declarations ================================================================================ */
 
@@ -68,7 +76,7 @@ typedef struct clock_s * clock_t;
  * @return clock_t Instancia del reloj creada.
  */
 
-clock_t ClockCreate(uint16_t ticks_per_second);
+clock_t ClockCreate(uint16_t ticks_per_second, clock_alarm_callback_t callback);
 
 /**
  * @brief Obtiene la hora actual del reloj.

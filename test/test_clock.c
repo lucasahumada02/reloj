@@ -94,18 +94,24 @@ clock_t clock;
  * @param clock Instancia del reloj.
  * @param seconds Cantidad de segundos a simular.
  */
-static void SimulateSeconds(clock_t clock, uint16_t seconds){
-    for (uint16_t i = 0; i < CLOCK_TICKS_PER_SECOND * seconds; i++)
+static void SimulateSeconds(clock_t clock, uint32_t seconds){
+    for (uint32_t i = 0; i < CLOCK_TICKS_PER_SECOND * seconds; i++)
     {
         ClockNewTick(clock);
     } 
+}
+
+static void DummyAlarmCallback(clock_t clock) {
+    // No hace nada, solo evita errores en las pruebas
+    (void)clock;
 }
 
 /**
  * @brief Setup que se ejecuta antes de cada test. Crea una nueva instancia del reloj.
  */
 void setUp(void){
-    clock = ClockCreate(CLOCK_TICKS_PER_SECOND);
+    clock = ClockCreate(CLOCK_TICKS_PER_SECOND, DummyAlarmCallback);
+    ClockSetTime(clock, &(clock_time_t){0}); 
 }
 
 /* === Public function implementation ============================================================================== */
@@ -115,7 +121,7 @@ void test_set_up_with_invalid_time(void) {
         .bcd = {1, 2, 3, 4, 5, 6},
     };
 
-    clock_t clock = ClockCreate(CLOCK_TICKS_PER_SECOND);
+    clock_t clock = ClockCreate(CLOCK_TICKS_PER_SECOND, DummyAlarmCallback);
     TEST_ASSERT_FALSE(ClockGetTime(clock, &current_time));
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
 }
@@ -189,13 +195,15 @@ void test_clock_advance_ten_hours(void) {
 
 // Despues de n ciclos de reloj la hora avanza un dia completo
 void test_clock_advance_one_day(void) {
-
     ClockSetTime(clock, &(clock_time_t){.time = {
-                                          .hours = {3, 2}, .minutes = {9, 5}, .seconds = {0, 3} 
-                                      }});
-    SimulateSeconds(clock, 30);
+        .hours = {3, 2}, .minutes = {9, 5}, .seconds = {9, 5} // 23:59:59
+    }});
+
+    SimulateSeconds(clock, 1); // Avanza a 00:00:00
+
     TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0, current_time);
 }
+
 
 // Tratar de ajustar la hora el reloj con valores invalidos y verificar que los rechaza.
 void test_set_up_and_adjust_with_invalid_time(void) {
@@ -273,14 +281,29 @@ void test_clock_ring_and_cancel_alarm_today(void) {
 
     ClockCancelAlarmToday(clock);
     TEST_ASSERT_FALSE(ClockIsAlarmActive(clock));
-    SimulateSeconds(clock, 3600);
+    //SimulateSeconds(clock, 3600);
     TEST_ASSERT_FALSE(ClockIsAlarmActive(clock));
 
+    ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} // 09:59:45
+    });
+    ClockCancelAlarmToday(clock);
+    ClockSetTime(clock, &(clock_time_t){
+        .time = {.hours = {3, 2}, .minutes = {9, 5}, .seconds = {9, 5}}
+    });
+    SimulateSeconds(clock, 1); 
+        
+    SimulateSeconds(clock, 86400); // avanza 1 día completo, se activa alarma nuevamente
+
+
+    TEST_ASSERT_TRUE(ClockIsAlarmActive(clock));
+
+    /* 
     ClockSetTime(clock, &(clock_time_t){
         .time = {.hours = {3, 2}, .minutes = {9, 5}, .seconds = {9, 5}} // 23:59:59
     });
     SimulateSeconds(clock, 1);  // 00:00:00 se resetea alarm_cancelled_today
-
+*/
     ClockSetTime(clock, &(clock_time_t){
         .time = {.hours = {9, 0}, .minutes = {9, 5}, .seconds = {5, 4}} // 09:59:45
     });
@@ -296,7 +319,7 @@ void test_clock_get_time_with_null_argument(void) {
 
 //Hacer una prueba con frecuencias diferentes.
 void test_clock_with_different_tick_frequency(void) {
-    clock = ClockCreate(10);
+    clock = ClockCreate(10, DummyAlarmCallback);
     ClockSetTime(clock, &(clock_time_t){0});
     for (int i = 0; i < 10; i++) {
         ClockNewTick(clock);

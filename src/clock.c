@@ -46,6 +46,9 @@ struct clock_s {
     bool alarm_enabled;              /**< Estado de habilitación de la alarma */
     bool alarm_triggered;            /**< Indica si la alarma está sonando */
     bool alarm_cancelled_today;      /**< Indica si la alarma fue cancelada hoy */
+    bool alarm_active_today;
+    bool alarm_ringing;
+    clock_alarm_callback_t callback;
 };
 
 
@@ -68,16 +71,88 @@ static bool IsValidTime(const clock_time_t * time) {
     return is_valid;
 }
 
+static bool BcdIncrement(uint8_t * units, uint8_t * tens, uint8_t max_units, uint8_t max_tens) {
+    (*units)++;
+    if (*units > max_units) {
+        *units = 0;
+        (*tens)++;
+        if (*tens > max_tens) {
+            *tens = 0;
+            return true;
+        }
+    }
+    return false;
+}
+
+static void AdvanceTime(clock_t self) {
+    clock_time_t *t = &self->current_time;
+
+   bool was_end_of_day =
+    (t->time.hours[0] == 3 && t->time.hours[1] == 2 &&
+     t->time.minutes[0] == 9 && t->time.minutes[1] == 5 &&
+     t->time.seconds[0] == 9 && t->time.seconds[1] == 5);
+
+
+    // Avanzar tiempo
+    if (BcdIncrement(&t->time.seconds[0], &t->time.seconds[1], 9, 5)) {
+        if (BcdIncrement(&t->time.minutes[0], &t->time.minutes[1], 9, 5)) {
+            if (BcdIncrement(&t->time.hours[0], &t->time.hours[1], 9, 2)) {
+                t->time.hours[0] = 0;
+                t->time.hours[1] = 0;
+            } else {
+                uint8_t hour_decimal = t->time.hours[1] * 10 + t->time.hours[0];
+                if (hour_decimal >= 24) {
+                    t->time.hours[0] = 0;
+                    t->time.hours[1] = 0;
+                }
+            }
+
+        }
+    }
+
+    // Si era fin de día, activar alarmas para el nuevo día
+    if (was_end_of_day) {
+        self->alarm_active_today = true;
+    }
+
+    if (self->alarm_enabled && self->valid_alarm && self->alarm_active_today) {
+        if (memcmp(t->bcd, self->alarm_time.bcd, sizeof(t->bcd)) == 0) {
+            self->alarm_ringing = true;
+            if (self->callback) {
+                self->callback(self);
+            }
+        }
+    }
+}
+
+
+
+static void PosponeAlarm(clock_t self, uint8_t minutes) {
+    uint8_t dec_min = self->alarm_time.time.minutes[1] * 10 + self->alarm_time.time.minutes[0];
+    uint8_t dec_hour = self->alarm_time.time.hours[1] * 10 + self->alarm_time.time.hours[0];
+
+    dec_min += minutes;
+    dec_hour += dec_min / 60;
+    dec_min = dec_min % 60;
+    dec_hour = dec_hour % 24;
+
+    self->alarm_time.time.minutes[1] = dec_min / 10;
+    self->alarm_time.time.minutes[0] = dec_min % 10;
+    self->alarm_time.time.hours[1] = dec_hour / 10;
+    self->alarm_time.time.hours[0] = dec_hour % 10;
+}
 /* === Public function implementation ============================================================================== */
-clock_t ClockCreate(uint16_t ticks_per_second){
+clock_t ClockCreate(uint16_t ticks_per_second, clock_alarm_callback_t callback){
     
     static struct clock_s self[1];
     memset(self, 0, sizeof(struct clock_s));
     self->ticks_per_second = ticks_per_second;
+    self->callback = callback;
+    /* 
     self->valid_time = false;
     self->valid_alarm = false;
     self->alarm_enabled = false;
-    self->alarm_triggered = false;
+    self->alarm_triggered = false;*/
     return self;
 }
 
@@ -112,6 +187,8 @@ void ClockNewTick(clock_t self){
     }
     self->clock_ticks = 0;
 
+    AdvanceTime(self);
+    /* 
     //Segundos
     self->current_time.time.seconds[0]++;
     if (self->current_time.time.seconds[0] > 9) {
@@ -162,7 +239,7 @@ void ClockNewTick(clock_t self){
         self->alarm_triggered = true;
     }
 }
-
+*/
 }
 
 bool ClockSetAlarm(clock_t self, const clock_time_t * alarm_time){
@@ -174,6 +251,8 @@ bool ClockSetAlarm(clock_t self, const clock_time_t * alarm_time){
     self->valid_alarm = true;
     self->alarm_enabled = true;
     self->alarm_triggered = false;
+    self->alarm_active_today = true;
+    self->alarm_ringing = false;
     return self->valid_alarm;
 }
 
@@ -183,15 +262,26 @@ bool ClockGetAlarm(clock_t self, clock_time_t * alarm_time){
 }
 
 bool ClockIsAlarmActive(clock_t self) {
-    return self->alarm_enabled && self->alarm_triggered;
+   // return self->alarm_enabled && self->alarm_triggered;
+    return self && self->alarm_ringing;
 }
 
 void ClockDisableAlarm(clock_t self) {
+    /* 
     self->alarm_enabled = false;
     self->alarm_triggered = false;
+    */
+    if (self) {
+        self->alarm_enabled = false;
+        self->alarm_ringing = false;
+    }
 }
 
 void ClockSnoozeAlarm(clock_t self) {
+   if (!self || !self->alarm_ringing) return;
+    self->alarm_ringing = false;
+    PosponeAlarm(self, 5);
+    /* 
     self->alarm_triggered = false;
 
     self->alarm_time.time.seconds[0] = 0;
@@ -219,11 +309,17 @@ void ClockSnoozeAlarm(clock_t self) {
             }
         }
     }
+        */
 }
 
-void ClockCancelAlarmToday(clock_t self) {
+void ClockCancelAlarmToday(clock_t self) { /*
     self->alarm_triggered = false;
     self->alarm_cancelled_today = true;
+    */
+    if (self) {
+        self->alarm_ringing = false;
+        self->alarm_active_today = false;
+    }
 }
 
 
