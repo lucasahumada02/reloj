@@ -79,7 +79,7 @@ static void DigitsInit(void){
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, DIGIT_4_GPIO, DIGIT_4_BIT, true);
 }
 
-void SegmentsInit(void){
+static void SegmentsInit(void){
     Chip_SCU_PinMuxSet(SEGMENT_A_PORT, SEGMENT_A_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | SEGMENT_A_FUNC);
     Chip_GPIO_SetPinState(LPC_GPIO_PORT, SEGMENT_A_GPIO, SEGMENT_A_BIT, false);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, SEGMENT_A_GPIO, SEGMENT_A_BIT, true);
@@ -138,7 +138,16 @@ board_t BoardCreate(void){
       SegmentsInit();
      board->screen = ScreenCreate(4, &screen_driver);
 
-     Chip_SCU_PinMuxSet(KEY_F1_PORT, KEY_F1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F1_FUNC);
+      Chip_SCU_PinMuxSet(RGB_RED_PORT, RGB_RED_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | RGB_RED_FUNC);
+      board->led_red = DigitalOutputCreate(RGB_RED_GPIO, RGB_RED_BIT, true);
+
+      Chip_SCU_PinMuxSet(RGB_GREEN_PORT, RGB_GREEN_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | RGB_GREEN_FUNC);
+      board->led_green = DigitalOutputCreate(RGB_GREEN_GPIO, RGB_GREEN_BIT, true);
+
+      Chip_SCU_PinMuxSet(RGB_BLUE_PORT, RGB_BLUE_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | RGB_BLUE_FUNC);
+      board->led_blue = DigitalOutputCreate(RGB_BLUE_GPIO, RGB_BLUE_BIT, true);
+     
+      Chip_SCU_PinMuxSet(KEY_F1_PORT, KEY_F1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F1_FUNC);
       board->increment = DigitalInputCreate(KEY_F1_GPIO, KEY_F1_BIT, true);
 
       Chip_SCU_PinMuxSet(KEY_F2_PORT, KEY_F2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | KEY_F2_FUNC);
@@ -161,12 +170,10 @@ board_t BoardCreate(void){
 }
 
 void SysTickInit(uint16_t ticks) {
-    __asm volatile("cpsid i"); // Deshabilita las interrupciones
-
-    SystemCoreClockUpdate(); // Actualiza la frecuencia del núcleo del sistema
-    SysTick_Config(SystemCoreClock / ticks); // Configura SysTick para interrupciones cada 1 ms
-
-    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1); // Establece la prioridad más baja para SysTick
+    __asm volatile("cpsid i"); 
+    SystemCoreClockUpdate(); 
+    SysTick_Config(SystemCoreClock / ticks); 
+    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
     
     __asm volatile("cpsie i"); // Habilita las interrupciones
 }
