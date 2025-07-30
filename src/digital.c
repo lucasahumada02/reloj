@@ -29,8 +29,7 @@ SPDX-License-Identifier: MIT
 #include "chip.h"
 #include <stdlib.h>
 #include <string.h>
-#include "config.h"
-#include "edu_ciaa.h"
+#include "poncho.h"
 
 /* === Macros definitions ========================================================================================== */
 
@@ -103,16 +102,16 @@ digital_input_t DigitalInputCreate(uint8_t gpio, uint8_t bit,bool inverted){
 }
 
 bool DigitalInputGetIsActive(digital_input_t self){
-     bool state = Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, self->gpio, self->bit) != 0;
+    bool state = Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, self->gpio, self->bit);
     if (self->inverted)
     { 
-        state = !state;
+        return !state;
     }
     
     return state;
 }
 
-digital_states_t DigitalWasChanged(digital_input_t self){
+digital_states_t DigitalInputWasChanged(digital_input_t self){
     digital_states_t result = DIGITAL_INPUT_NO_CHANGE;
 
     bool state = DigitalInputGetIsActive(self);
@@ -130,16 +129,14 @@ digital_states_t DigitalWasChanged(digital_input_t self){
 }
 
 bool DigitalInputWasActivated(digital_input_t self){
-    return DIGITAL_INPUT_WAS_ACTIVATED == DigitalWasChanged(self);
+    return DIGITAL_INPUT_WAS_ACTIVATED == DigitalInputWasChanged(self);
 }
 
 bool DigitalInputWasDeactivated(digital_input_t self){
-    return DIGITAL_INPUT_WAS_DEACTIVATED == DigitalWasChanged(self);
+    return DIGITAL_INPUT_WAS_DEACTIVATED == DigitalInputWasChanged(self);
 }
 
-digital_states_t DigitalInputWasChanged(digital_input_t self) {
-    return DigitalWasChanged(self);
-}
+
 
 
 /* === End of documentation ======================================================================================== */
