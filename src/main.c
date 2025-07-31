@@ -82,41 +82,21 @@ typedef struct {
 static board_t board;
 static clock_t clock;
 static states_clock current_mode;
-//static uint32_t system_tick_count = 0;
-static uint32_t inactivity_timer = 0;
-//static uint8_t display_digits[4] = {0};
 static uint8_t digits[4];
-// static button_status_t btn_set_time_status = {false, false, 0};
-// static button_status_t btn_set_alarm_status = {false, false, 0};
-//static bool alarm_active = false;  ///< Estado de la alarma
+static uint32_t inactivity_timer = 0;
+
+/* botones largos */
+static button_status_t btn_set_time_status = {0};
+static button_status_t btn_set_alarm_status = {0};
 
 /* === Private function declarations =========================================================== */
 
-static void AlarmaRinging(clock_t clock);
-
-// /**
-//  * @brief Activa la alamrma
-//  * 
-//  * @param clock Instancia del reloj
-//  */
-// static void clock_activate_alarm(clock_t clock);
-
-// /**
-//  * @brief Desactiva la alarma
-//  *  
-//  */
-// static void clock_deactivate_alarm(void);
-
 /**
- * @brief Controla el tiempo de boton presionado
+ * @brief Alarma sonando
  * 
- * @param button boton presionado
- * @param status estado del boton
- * @param delay tiempo presionado
- * @return true presionado tiempo necesario
- * @return false no presionado el tiempo necesario
+ * @param clock invocacion al reloj
  */
-//static bool btn_check_long_press(digital_input_t button, button_status_t *status, uint32_t delay);
+static void AlarmaRinging(clock_t clock);
 
 /**
  * @brief Cambia el estado del reloj
@@ -163,6 +143,17 @@ static void clock_convert_time_to_bcd(clock_time_t *time, uint8_t *bcd);
  */
 static void clock_convert_bcd_to_time(clock_time_t *time, uint8_t *bcd);
 
+/**
+ * @brief Controla el tiempo de boton presionado
+ * 
+ * @param button boton presionado
+ * @param status estado del boton
+ * @param delay tiempo presionado
+ * @return true presionado tiempo necesario
+ * @return false no presionado el tiempo necesario
+ */
+static bool btn_check_long_press(digital_input_t button, button_status_t *status, uint32_t delay_ms);
+
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
@@ -173,32 +164,27 @@ static void AlarmaRinging(clock_t clock){
     DigitalOutputActivate(board->led_red);
 }
 
-// static void clock_activate_alarm(clock_t clock) {
-//     DigitalOutputActivate(board->buzzer);
-//     DigitalOutputActivate(board->led_red);
-// }
-
-// static void clock_deactivate_alarm(void) {
-//     DigitalOutputDeactivate(board->buzzer);
-//     DigitalOutputDeactivate(board->led_red);
-// }
-
-// static bool btn_check_long_press(digital_input_t button, button_status_t *status, uint32_t delay) {
-//     if (DigitalInputGetIsActive(button)) {
-//         if (!status->is_pressed) {
-//             status->is_pressed = true;
-//             status->press_start_time = system_tick_count;
-//         } else if ((system_tick_count - status->press_start_time) >= delay && !status->was_processed) {
-//             status->was_processed = true;
-//             return true;
-//         }
-//     } else {
-//         status->is_pressed = false;
-//         status->was_processed = false;
-//         status->press_start_time = 0;
-//     }
-//     return false;
-// }
+static bool btn_check_long_press(digital_input_t button, button_status_t *status, uint32_t delay_ms) {
+    const uint32_t debounce = 50;
+    if (DigitalInputGetIsActive(button)) {
+        if (!status->is_pressed) {
+            status->is_pressed = true;
+            status->press_start_time = inactivity_timer;
+            status->was_processed = false;
+        } else if (!status->was_processed) {
+            uint32_t held = inactivity_timer - status->press_start_time;
+            if (held >= delay_ms + debounce) {
+                status->was_processed = true;
+                return true;
+            }
+        }
+    } else {
+        status->is_pressed = false;
+        status->was_processed = false;
+        status->press_start_time = 0;
+    }
+    return false;
+}
 
 static void clock_switch_mode(states_clock new_mode) {
     current_mode = new_mode;
@@ -206,31 +192,17 @@ static void clock_switch_mode(states_clock new_mode) {
     switch (current_mode) {
     case UNCONFIGURED:
         DisplayFlashDigits(board->screen, 0, 3, DISPLAY_FLASH_FREQUENCY);
-       // ScreenToggleDot(board->screen, 0);
         ScreenToggleDot(board->screen, 1);
-       // ScreenToggleDot(board->screen, 2);
-       // ScreenToggleDot(board->screen, 3);
         break;
     case SHOW_TIME:
         DisplayFlashDigits(board->screen, 0, 0, 0);
-        // ScreenToggleDot(board->screen, 0);
-        //ScreenToggleDot(board->screen, 1);
-        // ScreenToggleDot(board->screen, 2);
-        // ScreenToggleDot(board->screen, 3);
+        ScreenToggleDot(board->screen, 1);
         break;
     case SET_TIME_MINUTE:
         DisplayFlashDigits(board->screen, 2, 3, DISPLAY_FLASH_FREQUENCY);
-        // ScreenToggleDot(board->screen, 0);
-        // ScreenToggleDot(board->screen, 1);
-        // ScreenToggleDot(board->screen, 2);
-        // ScreenToggleDot(board->screen, 3);
         break;
     case SET_TIME_HOUR:
         DisplayFlashDigits(board->screen, 0, 1, DISPLAY_FLASH_FREQUENCY);
-        // ScreenToggleDot(board->screen, 0);
-        // ScreenToggleDot(board->screen, 1);
-        // ScreenToggleDot(board->screen, 2);
-        // ScreenToggleDot(board->screen, 3);
         break;
     case SET_ALARM_MINUTE:
         DisplayFlashDigits(board->screen, 2, 3, DISPLAY_FLASH_FREQUENCY);
@@ -251,13 +223,19 @@ static void clock_switch_mode(states_clock new_mode) {
 
 static void clock_increment_bcd(uint8_t *units, uint8_t *tens, uint8_t max_units, uint8_t max_tens) {
     (*units)++;
-    if (*units > max_units) {
+    if (*units > 9) {
         *units = 0;
         (*tens)++;
         if (*tens > max_tens) {
             *tens = 0;
             *units = 0;
         }
+    }
+
+    if (*tens == max_tens && *units > max_units)
+    {
+        *tens = 0;
+        *units = 0;
     }
 }
 
@@ -281,10 +259,6 @@ static void clock_convert_time_to_bcd(clock_time_t *time, uint8_t digits[]) {
         digits[1] = time->bcd[4]; // Hora de unidades
         digits[2] = time->bcd[3]; // Minuto de decenas
         digits[3] = time->bcd[2]; // Minuto de unidades
-//     bcd[0] = time->time.hours[1];
-//     bcd[1] = time->time.hours[0];
-//     bcd[2] = time->time.minutes[1];
-//     bcd[3] = time->time.minutes[0];
     }
  }
 
@@ -297,21 +271,13 @@ static void clock_convert_bcd_to_time(clock_time_t *time, uint8_t digits[]) {
         time->bcd[1] = 0;
         time->bcd[0] = 0;
     }
-    // time->time.hours[1] = bcd[0];
-    // time->time.hours[0] = bcd[1];
-    // time->time.minutes[1] = bcd[2];
-    // time->time.minutes[0] = bcd[3];
-    // time->time.seconds[1] = 0;
-    // time->time.seconds[0] = 0;
 }
 
 /* === Public function implementation ========================================================= */
 
-
 int main(void) {
 
-    clock_time_t current_time_data, alarm_time_data;
-    
+    clock_time_t current_time_data, alarm_time_data; 
 
     clock = ClockCreate(CLOCK_TICKS_PER_SECOND, AlarmaRinging);
     board = BoardCreate();
@@ -319,11 +285,33 @@ int main(void) {
     clock_switch_mode(UNCONFIGURED);
 
     while (true) {
+        /* PRESION LARGA F1: entrar a set time minute */
+        if (btn_check_long_press(board->set_time, &btn_set_time_status, BUTTON_SET_DELAY)) {
+            if (ClockGetTime(clock, &current_time_data)) {
+                clock_convert_time_to_bcd(&current_time_data, digits);
+            } else {
+                // si no está configurado, arrancar de 00:00
+                digits[0] = digits[1] = digits[2] = digits[3] = 0;
+            }
+            ScreenWriteBCD(board->screen, digits, sizeof(digits));
+            clock_switch_mode(SET_TIME_MINUTE);
+        }
+
+        /* PRESION LARGA F2: entrar a set alarm minute */
+        if (btn_check_long_press(board->set_alarm, &btn_set_alarm_status, BUTTON_SET_DELAY)) {
+            if (ClockGetAlarm(clock, &alarm_time_data)) {
+                clock_convert_time_to_bcd(&alarm_time_data, digits);
+            } else {
+                digits[0] = digits[1] = digits[2] = digits[3] = 0;
+            }
+            ScreenWriteBCD(board->screen, digits, sizeof(digits));
+            clock_switch_mode(SET_ALARM_MINUTE);
+        } 
 
        if (DigitalInputWasDeactivated(board->accept)) {
             if (current_mode == SHOW_TIME) {
                 if (ClockIsAlarmActive(clock)) {
-                    ClockSnoozeAlarm(clock); // Posponer alarma 5 minutos
+                    ClockSnoozeAlarm(clock);
                 }
             } else if (current_mode == SET_TIME_MINUTE) {
                 clock_switch_mode(SET_TIME_HOUR);
@@ -343,43 +331,30 @@ int main(void) {
         if (DigitalInputWasDeactivated(board->cancel)) {
             if (current_mode == SHOW_TIME) {
                 if (ClockIsAlarmActive(clock)) {
-                    ClockCancelAlarmToday(clock);
+                    ClockPostponeAlarmToNextDay(clock);
+                    ScreenSetDot(board->screen, 3, true);
+                }else if (ClockIsAlarmEnabled(clock)) {
+                    ClockDisableAlarm(clock);
                 }
             } else if (current_mode == SET_TIME_MINUTE || current_mode == SET_TIME_HOUR) {
                 if (ClockGetTime(clock, &current_time_data)) {
                     clock_switch_mode(SHOW_TIME);
                 } else {
-                    clock_switch_mode(UNCONFIGURED); // Si la hora no es válida, volver a UNCONFIGURED
+                    clock_switch_mode(UNCONFIGURED);
                 }
             } else if (current_mode == SET_ALARM_MINUTE || current_mode == SET_ALARM_HOUR) {
-                clock_switch_mode(SHOW_TIME); // Cancelar configuración de alarma
+                clock_switch_mode(SHOW_TIME);
             }
         }
 
-        if (DigitalInputWasDeactivated(board->set_time)) {
-            clock_switch_mode(SET_TIME_MINUTE);
-            ClockGetTime(clock, &current_time_data);
-            clock_convert_time_to_bcd(&current_time_data, digits);
-            ScreenWriteBCD(board->screen, digits, sizeof(digits));
-        }
-
-        if (DigitalInputWasDeactivated(board->set_alarm)) {
-            //dotsOn = false; // Aseguramos que los puntos estén apagados al iniciar la configuración de alarma
-            clock_switch_mode(SET_ALARM_MINUTE);
-            ClockGetAlarm(clock, &alarm_time_data);
-            clock_convert_time_to_bcd(&alarm_time_data, digits);
-            ScreenWriteBCD(board->screen, digits, sizeof(digits));
-        }
-
         if (DigitalInputWasDeactivated(board->decrement)) {
+            inactivity_timer = 0;
             if (current_mode == SET_TIME_MINUTE || current_mode == SET_ALARM_MINUTE) {
                 clock_decrement_bcd(&digits[3], &digits[2], 9, 5);
             } else if (current_mode == SET_TIME_HOUR || current_mode == SET_ALARM_HOUR) {
                 clock_decrement_bcd(&digits[1], &digits[0], 3, 2);
             }
 
-            //hour_digits[0] = display_digits[0]; hour_digits[1] = display_digits[1];
-            //minute_digits[0] = display_digits[2]; minute_digits[1] = display_digits[3];
             ScreenWriteBCD(board->screen, digits, sizeof(digits));
 
             if (current_mode == SET_ALARM_MINUTE || current_mode == SET_ALARM_HOUR) {
@@ -387,19 +362,17 @@ int main(void) {
                 ScreenToggleDot(board->screen, 1);
                 ScreenToggleDot(board->screen, 2);
                 ScreenToggleDot(board->screen, 3);
-                //dotsOn = true;
             }
         }
 
         if (DigitalInputWasDeactivated(board->increment)) {
+            inactivity_timer = 0;
             if (current_mode == SET_TIME_MINUTE || current_mode == SET_ALARM_MINUTE) {
                 clock_increment_bcd(&digits[3], &digits[2], 9, 5);
             } else if (current_mode == SET_TIME_HOUR || current_mode == SET_ALARM_HOUR) {
                 clock_increment_bcd(&digits[1], &digits[0], 3, 2);
             }
 
-            //hour_digits[0] = display_digits[0]; hour_digits[1] = display_digits[1];
-            //minute_digits[0] = display_digits[2]; minute_digits[1] = display_digits[3];
             ScreenWriteBCD(board->screen, digits, sizeof(digits));
 
             if ( current_mode == SET_ALARM_MINUTE || current_mode == SET_ALARM_HOUR) {
@@ -407,189 +380,23 @@ int main(void) {
                 ScreenToggleDot(board->screen, 1);
                 ScreenToggleDot(board->screen, 2);
                 ScreenToggleDot(board->screen, 3);
-                //dotsOn = true; // nos aseguramos que sigue en true
             }
         }
 
-
-        
-        // switch (current_mode) {
-        // case UNCONFIGURED:
-        //     if (ClockGetTime(clock, &current_time_data)) {
-        //         clock_switch_mode(SET_TIME_MINUTE);
-        //     } else {
-        //         clock_convert_time_to_bcd(&current_time_data, display_digits);
-        //         ScreenWriteBCD(board->screen, display_digits, 4);
-        //         ScreenToggleDot(board->screen, 1);
-        //         if (btn_check_long_press(board->set_time, &btn_set_time_status, BUTTON_SET_DELAY)) {
-        //             clock_switch_mode(SET_TIME_MINUTE);
-        //         }
-        //     }
-        //     break;
-
-        // case SHOW_TIME:
-        //     if (ClockGetTime(clock, &current_time_data)) {
-        //         clock_convert_time_to_bcd(&current_time_data, display_digits);
-        //         ScreenWriteBCD(board->screen, display_digits, 4);
-        //         if (btn_check_long_press(board->set_time, &btn_set_time_status, BUTTON_SET_DELAY)) {
-        //             ClockGetTime(clock, &current_time_data);
-        //             clock_convert_time_to_bcd(&current_time_data, display_digits);
-        //             hour_digits[0] = display_digits[0]; hour_digits[1] = display_digits[1];
-        //             minute_digits[0] = display_digits[2]; minute_digits[1] = display_digits[3];
-        //             clock_switch_mode(SET_TIME_MINUTE);
-        //         }
-        //         if (btn_check_long_press(board->set_alarm, &btn_set_alarm_status, BUTTON_SET_DELAY)) {
-        //             if (ClockGetAlarm(clock, &alarm_time_data)) {
-        //                 clock_convert_time_to_bcd(&alarm_time_data, display_digits);
-        //                 hour_digits[0] = display_digits[0]; hour_digits[1] = display_digits[1];
-        //                 minute_digits[0] = display_digits[2]; minute_digits[1] = display_digits[3];
-        //             }
-        //             clock_switch_mode(SET_ALARM_MINUTE);
-        //         }
-        //         if (DigitalInputWasActivated(board->accept)) {
-        //             ClockSetAlarm(clock, &alarm_time_data);
-        //         }
-        //         if (DigitalInputWasActivated(board->cancel)) {
-        //             ClockDisableAlarm(clock);
-        //             clock_deactivate_alarm();
-
-        //         }
-        //         if (ClockIsAlarmActive(clock) && !alarm_active) {
-        //             alarm_active = true;
-        //             clock_activate_alarm(clock);
-        //         } else if (!ClockIsAlarmActive(clock) && alarm_active) {
-        //             alarm_active = false;
-        //             clock_deactivate_alarm();
-        //         }
-        //         if (alarm_active) {
-        //             if (DigitalInputWasActivated(board->accept)) {
-        //                 ClockSnoozeAlarm(clock);
-        //                 clock_deactivate_alarm();
-        //             }
-        //             if (DigitalInputWasActivated(board->cancel)) {
-        //                 ClockCancelAlarmToday(clock);
-        //                 clock_deactivate_alarm();
-        //             }
-        //         }
-        //     }
-        //     break;
-
-        // case SET_TIME_MINUTE:
-        //     if (DigitalInputWasActivated(board->increment)) {
-        //         clock_increment_bcd(&minute_digits[1], &minute_digits[0], 9, 5);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->decrement)) {
-        //         clock_decrement_bcd(&minute_digits[1], &minute_digits[0], 9, 5);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->accept)) {
-        //         clock_switch_mode(SET_TIME_HOUR);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->cancel) || inactivity_timer >= INACTIVITY_TIMEOUT_MS) {
-        //         if (ClockGetTime(clock, &current_time_data)) {
-        //             clock_switch_mode(SHOW_TIME);
-        //         } else {
-        //             clock_switch_mode(UNCONFIGURED);
-        //         }
-        //         inactivity_timer = 0;
-        //     }
-        //     hour_digits[0] = display_digits[0]; hour_digits[1] = display_digits[1];
-        //     minute_digits[0] = display_digits[2]; minute_digits[1] = display_digits[3];
-        //     ScreenWriteBCD(board->screen, display_digits, 4);
-        //     DisplayFlashDigits(board->screen, 2, 3, DISPLAY_FLASH_FREQUENCY);
-        //     break;
-
-        // case SET_TIME_HOUR:
-        //     if (DigitalInputWasActivated(board->increment)) {
-        //         clock_increment_bcd(&hour_digits[1], &hour_digits[0], 3, 2);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->decrement)) {
-        //         clock_decrement_bcd(&hour_digits[1], &hour_digits[0], 3, 2);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->accept)) {
-        //         display_digits[0] = hour_digits[0]; display_digits[1] = hour_digits[1];
-        //         display_digits[2] = minute_digits[0]; display_digits[3] = minute_digits[1];
-        //         clock_convert_bcd_to_time(&current_time_data, display_digits);
-        //         ClockSetTime(clock, &current_time_data);
-        //         clock_switch_mode(SHOW_TIME);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->cancel) || inactivity_timer >= INACTIVITY_TIMEOUT_MS) {
-        //         if (ClockGetTime(clock, &current_time_data)) {
-        //             clock_switch_mode(SHOW_TIME);
-        //         } else {
-        //             clock_switch_mode(UNCONFIGURED);
-        //         }
-        //         inactivity_timer = 0;
-        //     }
-        //     display_digits[0] = hour_digits[0]; display_digits[1] = hour_digits[1];
-        //     display_digits[2] = minute_digits[0]; display_digits[3] = minute_digits[1];
-        //     ScreenWriteBCD(board->screen, display_digits, 4);
-        //     DisplayFlashDigits(board->screen, 0, 1, DISPLAY_FLASH_FREQUENCY);
-        //     break;
-
-        // case SET_ALARM_MINUTE:
-        //     if (DigitalInputWasActivated(board->increment)) {
-        //         clock_increment_bcd(&minute_digits[1], &minute_digits[0], 9, 5);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->decrement)) {
-        //         clock_decrement_bcd(&minute_digits[1], &minute_digits[0], 9, 5);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->accept)) {
-        //         clock_switch_mode(SET_ALARM_HOUR);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->cancel) || inactivity_timer >= INACTIVITY_TIMEOUT_MS) {
-        //         clock_switch_mode(SHOW_TIME);
-        //         inactivity_timer = 0;
-        //     }
-        //     display_digits[0] = hour_digits[0]; display_digits[1] = hour_digits[1];
-        //     display_digits[2] = minute_digits[0]; display_digits[3] = minute_digits[1];
-        //     ScreenWriteBCD(board->screen, display_digits, 4);
-        //     DisplayFlashDigits(board->screen, 2, 3, DISPLAY_FLASH_FREQUENCY);
-        //     ScreenToggleDot(board->screen, 0);
-        //     ScreenToggleDot(board->screen, 1);
-        //     ScreenToggleDot(board->screen, 2);
-        //     ScreenToggleDot(board->screen, 3);
-        //     break;
-
-        // case SET_ALARM_HOUR:
-        //     if (DigitalInputWasActivated(board->increment)) {
-        //         clock_increment_bcd(&hour_digits[1], &hour_digits[0], 3, 2);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->decrement)) {
-        //         clock_decrement_bcd(&hour_digits[1], &hour_digits[0], 3, 2);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->accept)) {
-        //         display_digits[0] = hour_digits[0]; display_digits[1] = hour_digits[1];
-        //         display_digits[2] = minute_digits[0]; display_digits[3] = minute_digits[1];
-        //         clock_convert_bcd_to_time(&alarm_time_data, display_digits);
-        //         ClockSetAlarm(clock, &alarm_time_data);
-        //         clock_switch_mode(SHOW_TIME);
-        //         inactivity_timer = 0;
-        //     }
-        //     if (DigitalInputWasActivated(board->cancel) || inactivity_timer >= INACTIVITY_TIMEOUT_MS) {
-        //         clock_switch_mode(SHOW_TIME);
-        //         inactivity_timer = 0;
-        //     }
-        //     display_digits[0] = hour_digits[0]; display_digits[1] = hour_digits[1];
-        //     display_digits[2] = minute_digits[0]; display_digits[3] = minute_digits[1];
-        //     ScreenWriteBCD(board->screen, display_digits, 4);
-        //     DisplayFlashDigits(board->screen, 0, 1, DISPLAY_FLASH_FREQUENCY);
-        //     ScreenToggleDot(board->screen, 0);
-        //     ScreenToggleDot(board->screen, 1);
-        //     ScreenToggleDot(board->screen, 2);
-        //     ScreenToggleDot(board->screen, 3);
-        //     break;
-        // }
+        /* TIEMPO DE INACTIVIDAD */
+        if ((current_mode == SET_TIME_MINUTE || current_mode == SET_TIME_HOUR ||
+             current_mode == SET_ALARM_MINUTE || current_mode == SET_ALARM_HOUR) &&
+            inactivity_timer >= INACTIVITY_TIMEOUT_MS) {
+            if (current_mode == SET_TIME_MINUTE || current_mode == SET_TIME_HOUR) {
+                if (ClockGetTime(clock, &current_time_data)) {
+                    clock_switch_mode(SHOW_TIME);
+                } else {
+                    clock_switch_mode(UNCONFIGURED);
+                }
+            } else {
+                clock_switch_mode(SHOW_TIME);
+            }
+        }
 
         for (volatile int delay_loop = 0; delay_loop < 25000; delay_loop++) {
             __asm("NOP");
@@ -598,56 +405,45 @@ int main(void) {
  }
 
  void SysTick_Handler(void) {
-    static uint16_t count = 0;
+    static uint16_t flash_counter = 0;
     clock_time_t time;
 
     ScreenRefresh(board->screen);
     ClockNewTick(clock);
 
-    count = (count + 1) % 1000;
-    if (current_mode <= SHOW_TIME) {
-        ClockGetTime(clock, &time);
-        clock_convert_time_to_bcd(&time, digits);
-        ScreenWriteBCD(board->screen, digits, sizeof(digits));
-        if (count > 500 && current_mode == SHOW_TIME) {
-            ScreenToggleDot(board->screen, 1);
-            DigitalOutputActivate(board->led_red);
+    inactivity_timer++;
+
+    if (current_mode == SHOW_TIME) {
+        flash_counter = (flash_counter + 1) % 1000;
+
+        if (ClockGetTime(clock, &time)) {
+            clock_convert_time_to_bcd(&time, digits);
+            ScreenWriteBCD(board->screen, digits, sizeof(digits));
         }
+
+        if (flash_counter > 500) {
+            ScreenToggleDot(board->screen, 1);
+        }
+
+        if (ClockIsAlarmEnabled(clock)) {
+            ScreenSetDot(board->screen, 3, true);
+        } else {
+            ScreenSetDot(board->screen, 3, false);
+        }
+
         if (ClockIsAlarmActive(clock)) {
-            ScreenToggleDot(board->screen, 3);
+            ScreenSetDot(board->screen, 0, true);
+            DigitalOutputActivate(board->led_red);
+        } else {
+            ScreenSetDot(board->screen, 0, false);
             DigitalOutputDeactivate(board->led_red);
         }
-        if (!ClockIsAlarmActive(clock)) {
-            //DigitalOutputToggle(board->led_red);
-            DigitalOutputDeactivate(board->led_red);
-            ScreenToggleDot(board->screen, 1);
-        }
+    }else if (current_mode == UNCONFIGURED){
+        digits[0] = digits[1] = digits[2] = digits[3] = 0;
+        ScreenWriteBCD(board->screen, digits, sizeof(digits));
+        ScreenSetDot(board->screen, 1, true);
     }
 }
-// void SysTick_Handler(void) {
-//     static uint32_t tick_counter = 0;
-//     clock_time_t time_data;
-
-//     ScreenRefresh(board->screen);
-//     ClockNewTick(clock);
-//     system_tick_count++;
-//     inactivity_timer++;
-
-//     if (current_mode == SHOW_TIME) {
-//         if (ClockGetTime(clock, &time_data)) {
-//             clock_convert_time_to_bcd(&time_data, display_digits);
-//             ScreenWriteBCD(board->screen, display_digits, 4);
-//             if (tick_counter > 500) {
-//                 ScreenToggleDot(board->screen, 1); // Parpadea el punto del segundo dígito
-//             }
-//             if (ClockIsAlarmActive(clock)) {
-//                 ScreenToggleDot(board->screen, 0); // Punto del último dígito encendido si alarma activa
-//             }
-//         }
-//     }
-//     tick_counter = (tick_counter + 1) % 1000;
-// }
-
 /* === End of documentation ==================================================================== */
 
 /** @} End of module definition for doxygen */

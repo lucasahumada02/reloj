@@ -104,13 +104,21 @@ void ScreenRefresh(screen_t screen);
 int DisplayFlashDigits(screen_t screen, uint8_t from, uint8_t to, uint16_t divisor);
 
 /**
- * @brief 
+ * @brief  Cambia el estado de un punto decimal en la pantalla
  * 
- * @param screen 
- * @param position 
+ * @param screen Puntero a la estructura de control de la pantalla
+ * @param position Posición del punto decimal a cambiar
  */
 void ScreenToggleDot(screen_t screen, uint8_t position);
 
+/**
+ * @brief Establece el estado de un punto decimal en la pantalla
+ * 
+ * @param screen Puntero a la estructura de control de la pantalla
+ * @param position Posición del punto decimal a cambiar
+ * @param on Estado deseado del punto
+ */
+void ScreenSetDot(screen_t screen, uint8_t position, bool on);
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus

@@ -69,8 +69,6 @@ static const uint8_t IMAGES[10] = {
 
 /* === Private function declarations =============================================================================== */
 
-
-
 /* === Private variable definitions ================================================================================ */
 
 /* === Public variable definitions ================================================================================= */
@@ -148,5 +146,12 @@ int DisplayFlashDigits(screen_t self, uint8_t from, uint8_t to, uint16_t divisor
 
 void ScreenToggleDot(screen_t self, uint8_t position) {
     self->value[position] ^= SEGMENT_P;
+}
+
+void ScreenSetDot(screen_t self, uint8_t position, bool on) {
+    if (on)
+        self->value[position] |= SEGMENT_P;
+    else
+        self->value[position] &= ~SEGMENT_P;
 }
 /* === End of documentation ======================================================================================== */

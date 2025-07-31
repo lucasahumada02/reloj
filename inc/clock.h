@@ -155,14 +155,18 @@ void ClockDisableAlarm(clock_t clock);
 void ClockSnoozeAlarm(clock_t clock);
 
 /**
- * @brief Cancela la alarma solo por el día actual.
- *
- * Evita que suene nuevamente hasta que el reloj pase por 00:00:00.
- *
+ * @brief Pospone la alarma hasta el dia siguiente
+ * 
  * @param clock Instancia del reloj.
  */
-void ClockCancelAlarmToday(clock_t clock);
+void ClockPostponeAlarmToNextDay(clock_t clock);
 
+/**
+ * @brief Habilita la alarma
+ * 
+ * @param clock Instancia del reloj
+ */
+bool ClockIsAlarmEnabled(clock_t clock);
 
 /* === End of conditional blocks =================================================================================== */
 
