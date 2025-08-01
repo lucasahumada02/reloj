@@ -310,6 +310,11 @@ int main(void) {
 
        if (DigitalInputWasDeactivated(board->accept)) {
             if (current_mode == SHOW_TIME) {
+                if (ClockSetAlarm(clock, &alarm_time_data))
+                {
+                    ClockIsAlarmEnabled(clock);
+                }
+
                 if (ClockIsAlarmActive(clock)) {
                     ClockSnoozeAlarm(clock);
                 }
