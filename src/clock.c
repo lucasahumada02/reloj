@@ -66,15 +66,6 @@ static bool IsValidTime(const clock_time_t * time) {
     return is_valid;
 }
 
-static void SyncBcdFromTime(clock_time_t *t) {
-    t->bcd[5] = t->time.hours[1];
-    t->bcd[4] = t->time.hours[0];
-    t->bcd[3] = t->time.minutes[1];
-    t->bcd[2] = t->time.minutes[0];
-    t->bcd[1] = t->time.seconds[1];
-    t->bcd[0] = t->time.seconds[0];
-}
-
 static bool BcdIncrement(uint8_t * units, uint8_t * tens, uint8_t max_units, uint8_t max_tens) {
     (*units)++;
     if (*units > max_units) {
@@ -91,60 +82,57 @@ static bool BcdIncrement(uint8_t * units, uint8_t * tens, uint8_t max_units, uin
 static void AdvanceTime(clock_t self) {
     clock_time_t *t = &self->current_time;
 
-   bool was_end_of_day =
-    (t->time.hours[0] == 3 && t->time.hours[1] == 2 &&
-     t->time.minutes[0] == 9 && t->time.minutes[1] == 5 &&
-     t->time.seconds[0] == 9 && t->time.seconds[1] == 5);
-
     if (BcdIncrement(&t->time.seconds[0], &t->time.seconds[1], 9, 5)) {
         if (BcdIncrement(&t->time.minutes[0], &t->time.minutes[1], 9, 5)) {
             if (BcdIncrement(&t->time.hours[0], &t->time.hours[1], 9, 2)) {
                 t->time.hours[0] = 0;
                 t->time.hours[1] = 0;
-            } else {
+                self->alarm_cancelled_today = false;
+             } else {
                 uint8_t hour_decimal = t->time.hours[1] * 10 + t->time.hours[0];
                 if (hour_decimal >= 24) {
                     t->time.hours[0] = 0;
                     t->time.hours[1] = 0;
+                    self->alarm_cancelled_today = false;
                 }
-            }
+             }
 
         }
     }
 
-    if (was_end_of_day) {
-        self->alarm_cancelled_today = false;
-    }
-
-    SyncBcdFromTime(t);
-
-    if (self->alarm_enabled && self->valid_alarm && !self->alarm_cancelled_today) {
-        if (memcmp(t->bcd, self->alarm_time.bcd, sizeof(t->bcd)) == 0) {
-            if (!self->alarm_ringing) {
-                self->alarm_ringing = true;
-                if (self->callback) {
-                    self->callback(self);
-                }
+    if (self->alarm_enabled && self->valid_alarm && !self->alarm_cancelled_today &&
+        t->time.hours[1] == self->alarm_time.time.hours[1] &&
+        t->time.hours[0] == self->alarm_time.time.hours[0] &&
+        t->time.minutes[1] == self->alarm_time.time.minutes[1] &&
+        t->time.minutes[0] == self->alarm_time.time.minutes[0]) {
+        if (!self->alarm_ringing) {
+            self->alarm_ringing = true;
+            if (self->callback) {
+                self->callback(self);
             }
         }
     }
 }
 
 static void PosponeAlarm(clock_t self, uint8_t minutes) {
-    uint8_t dec_min = self->alarm_time.time.minutes[1] * 10 + self->alarm_time.time.minutes[0];
-    uint8_t dec_hour = self->alarm_time.time.hours[1] * 10 + self->alarm_time.time.hours[0];
+    uint8_t dec_min = self->current_time.time.minutes[1] * 10 + self->current_time.time.minutes[0];
+    uint8_t dec_hour = self->current_time.time.hours[1]   * 10 + self->current_time.time.hours[0];
 
-    dec_min += minutes;
-    dec_hour += dec_min / 60;
-    dec_min = dec_min % 60;
-    dec_hour = dec_hour % 24;
+    uint16_t total_min = dec_hour * 60 + dec_min + minutes;
+    uint8_t new_hour = (total_min / 60) % 24;
+    uint8_t new_min  = total_min % 60;
 
-    self->alarm_time.time.minutes[1] = dec_min / 10;
-    self->alarm_time.time.minutes[0] = dec_min % 10;
-    self->alarm_time.time.hours[1] = dec_hour / 10;
-    self->alarm_time.time.hours[0] = dec_hour % 10;
+    self->alarm_time.time.minutes[1] = new_min / 10;
+    self->alarm_time.time.minutes[0] = new_min % 10;
+    self->alarm_time.time.hours[1] = new_hour / 10;
+    self->alarm_time.time.hours[0] = new_hour % 10;
 
-    SyncBcdFromTime(&self->alarm_time);
+    self->alarm_time.time.seconds[1] = 0;
+    self->alarm_time.time.seconds[0] = 0;
+
+    self->alarm_ringing = false;
+    self->alarm_enabled = true;
+    self->alarm_cancelled_today = false;
 }
 /* === Public function implementation ============================================================================== */
 clock_t ClockCreate(uint16_t ticks_per_second, clock_alarm_callback_t callback){
@@ -177,7 +165,6 @@ bool ClockSetTime(clock_t self, const clock_time_t * new_time){
     {
         self->valid_time = true;
         memcpy(&self->current_time, new_time, sizeof(clock_time_t));
-        SyncBcdFromTime(&self->current_time);
     }else
     {
         self->valid_time = false;
@@ -201,7 +188,6 @@ bool ClockSetAlarm(clock_t self, const clock_time_t * alarm_time){
         return false;
     }
     memcpy(&self->alarm_time, alarm_time, sizeof(clock_time_t));
-    SyncBcdFromTime(&self->alarm_time);
     self->valid_alarm = true;
     self->alarm_enabled = true;
     self->alarm_cancelled_today = false;
@@ -226,9 +212,12 @@ void ClockDisableAlarm(clock_t self) {
 }
 
 void ClockSnoozeAlarm(clock_t self) {
-   if (!self || !self->alarm_ringing) return;
+   if (!self || !self->valid_alarm || !self->alarm_ringing) return;
     self->alarm_ringing = false;
     PosponeAlarm(self, 5);
+
+    self->alarm_enabled = true;
+    self->alarm_cancelled_today = false;
 }
 
 
@@ -247,8 +236,9 @@ void ClockPostponeAlarmToNextDay(clock_t self) {
     self->alarm_time.time.hours[0] = new_hour % 10;
     self->alarm_time.time.minutes[1] = new_min / 10;
     self->alarm_time.time.minutes[0] = new_min % 10;
-    
-    SyncBcdFromTime(&self->alarm_time);
+
+    self->alarm_time.time.seconds[1] = 0;  // Fija a :00
+    self->alarm_time.time.seconds[0] = 0;
     
     self->alarm_ringing = false;
     self->alarm_cancelled_today = true;
@@ -257,5 +247,15 @@ void ClockPostponeAlarmToNextDay(clock_t self) {
 
 bool ClockIsAlarmEnabled(clock_t self) {
     return self && self->alarm_enabled && self->valid_alarm;
+}
+
+bool ClockEnableAlarm(clock_t self){
+    if (self && self->valid_alarm) {
+        self->alarm_enabled = true;
+        self->alarm_ringing = false;
+        self->alarm_cancelled_today = false;
+        return true;
+    }
+    return false;
 }
 /* === End of documentation ======================================================================================== */

@@ -162,12 +162,18 @@ void ClockSnoozeAlarm(clock_t clock);
 void ClockPostponeAlarmToNextDay(clock_t clock);
 
 /**
- * @brief Habilita la alarma
+ * @brief Avisa si esta habilitada la alarma
  * 
  * @param clock Instancia del reloj
  */
 bool ClockIsAlarmEnabled(clock_t clock);
 
+/**
+ * @brief Habilita la alarma
+ * 
+ * @param clock Instancia del reloj
+ */
+bool  ClockEnableAlarm(clock_t clock);
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus

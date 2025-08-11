@@ -119,6 +119,15 @@ void ScreenToggleDot(screen_t screen, uint8_t position);
  * @param on Estado deseado del punto
  */
 void ScreenSetDot(screen_t screen, uint8_t position, bool on);
+
+/**
+ * @brief Establece el patpadep de un punto decimal en la pantalla
+ * 
+ * @param screen Puntero a la estructura de control de la pantalla
+ * @param position Posición del punto decimal a cambiar
+ * @param frequency Factor de división de la frecuencia de refresco para el parpadeo
+ */
+void ScreenFlashPoint(screen_t self, uint8_t position, uint16_t frequency);
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus

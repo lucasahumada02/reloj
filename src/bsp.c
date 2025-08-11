@@ -57,6 +57,9 @@ static const struct screen_driver_s screen_driver = {
   .DigitTurnOn = DigitTurnOn,
 };
 
+static display_update_callback_t display_callback = NULL;
+
+static board_t current_board = NULL;
 /* === Public variable definitions ================================================================================= */
 
 /* === Private function definitions ================================================================================ */
@@ -177,5 +180,22 @@ void SysTickInit(uint16_t ticks) {
     NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
     
     __asm volatile("cpsie i"); // Habilita las interrupciones
+}
+
+void BoardSetDisplayCallback(board_t board, display_update_callback_t callback) {
+    display_callback = callback;
+    current_board = board;
+}
+
+void SysTick_Handler(void) {
+    static uint16_t flash_counter = 0;
+    
+    ScreenRefresh(current_board->screen);
+    
+    if (display_callback) {
+        display_callback();
+    }
+    
+    flash_counter++;
 }
 /* === End of documentation ======================================================================================== */

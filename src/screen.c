@@ -50,6 +50,12 @@ struct screen_s{
         uint16_t Digits_frecuency;
     }flashing[1];
 
+    struct {
+        uint8_t point_position;  // Posición del punto a parpadear (-1 si ninguno)
+        uint16_t point_frequency;  // Frecuencia (0 si off)
+        uint16_t point_count;
+    } point_flashing;
+
     screen_driver_t driver;
     
 };
@@ -88,6 +94,9 @@ screen_t ScreenCreate(uint8_t digits, screen_driver_t driver){
         self->current_digit = 0;
         self->flashing->Digits_count = 0;
         self->flashing->Digits_frecuency = 0;
+        self->point_flashing.point_position = -1;
+        self->point_flashing.point_frequency = 0;
+        self->point_flashing.point_count = 0;
     }
     return self;
 }
@@ -109,6 +118,14 @@ void ScreenRefresh(screen_t self){
     self->current_digit = (self->current_digit + 1) % self->digits;
     
     segments = self->value[self->current_digit];
+    if (self->point_flashing.point_frequency != 0 && self->current_digit == self->point_flashing.point_position) {
+        if (self->current_digit == 0) {  // Contar solo en dígito 0 para sync
+            self->point_flashing.point_count = (self->point_flashing.point_count + 1) % self->point_flashing.point_frequency;
+        }
+        if (self->point_flashing.point_count < (self->point_flashing.point_frequency / 2)) {
+            segments &= ~SEGMENT_P;  // Apaga punto durante mitad del ciclo
+        }
+    }
     if (self->flashing->Digits_frecuency != 0){
         if (self->current_digit == 0){
             self->flashing->Digits_count = (self->flashing->Digits_count + 1) % (self->flashing->Digits_frecuency);
@@ -153,5 +170,11 @@ void ScreenSetDot(screen_t self, uint8_t position, bool on) {
         self->value[position] |= SEGMENT_P;
     else
         self->value[position] &= ~SEGMENT_P;
+}
+
+void ScreenFlashPoint(screen_t self, uint8_t position, uint16_t frequency) {
+    self->point_flashing.point_position = position;
+    self->point_flashing.point_frequency = frequency * 2;  // Similar a flashing
+    self->point_flashing.point_count = 0;
 }
 /* === End of documentation ======================================================================================== */

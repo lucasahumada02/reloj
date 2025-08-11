@@ -55,6 +55,8 @@ extern "C" {
     digital_input_t cancel;
     screen_t screen;
  }const * board_t;
+
+typedef void (*display_update_callback_t)(void);
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
@@ -71,6 +73,12 @@ board_t BoardCreate(void);
  * 
  */
 void SysTickInit(uint16_t ticks);
+
+/**
+ * @brief Función para registrar el callback
+ *  
+ */
+void BoardSetDisplayCallback(board_t board, display_update_callback_t callback);
 
 /* === End of conditional blocks =================================================================================== */
 
