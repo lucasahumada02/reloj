@@ -63,7 +63,6 @@ typedef struct button_args_s {
     uint8_t event_push;         // Bits asociados a evento de presionar un boton
     uint8_t event_hold;          // evento asociado presionar un boton durante x tiempo
     digital_input_t button;             // Entrada digital
-    screen_t screen;
 } * button_args_t;
 
 /* === Public function declarations ================================================================================ */

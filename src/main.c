@@ -133,7 +133,6 @@ int main(void){
         btn_param->clock_events = clock_events;
         btn_param->event_hold = BUTTON_EVENT_LONG_0;
         btn_param->button = board->set_alarm;
-        btn_param->screen = board->screen;
         result = xTaskCreate(ButtonHoldTask, "Set_Alarm", BUTTON_TASK_STACK_SIZE, btn_param, tskIDLE_PRIORITY + 1, NULL);
     }
 
@@ -142,7 +141,6 @@ int main(void){
         btn_param->clock_events = clock_events;
         btn_param->event_push = BUTTON_EVENT_KEY_4;
         btn_param->button = board->increment;
-        btn_param->screen = board->screen;
         result = xTaskCreate(ButtonPushTask, "Increment", BUTTON_TASK_STACK_SIZE, btn_param, tskIDLE_PRIORITY + 1, NULL);
     }
     vTaskStartScheduler();

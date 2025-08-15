@@ -45,9 +45,27 @@ extern "C" {
 
 /* === Public data type declarations =============================================================================== */
 
+typedef struct clock_args_s {
+    clock_t clock;                  
+    clock_time_t current_time;      
+    clock_time_t alarm_time;         
+    board_t board;                  
+    uint8_t tick;                   
+    EventGroupHandle_t clock_events; 
+    SemaphoreHandle_t screen_mutex;  
+
+} * clock_args_t;
+
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
+
+/**
+ * @brief Funcion para la hora y la alarma
+ * 
+ * @param args
+ */
+void Clock_Task(void * args);
 
 /* === End of conditional blocks =================================================================================== */
 

@@ -28,6 +28,7 @@ SPDX-License-Identifier: MIT
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "screen.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -66,6 +67,18 @@ typedef struct clock_s * clock_t;
  * @param clock Instancia del reloj que dispara la alarma.
  */
 typedef void (*clock_alarm_callback_t)(clock_t clock);
+
+/**
+ * @brief Estados del reloj
+ */
+typedef enum {
+    unconfigured,              // Modo inicial del reloj
+    show_time,                 // Modo de funcionamiento normal
+    set_minutes_time,          // Modo para setear minutos 
+    set_hours_time,            // Modo para setear hora
+    set_minutes_alarm,         // Modo para setear minutos de alarma
+    set_hours_alarm,           // Modo para setear hora de alarma
+} clock_state_t;
 
 /* === Public function declarations ================================================================================ */
 
@@ -174,6 +187,48 @@ bool ClockIsAlarmEnabled(clock_t clock);
  * @param clock Instancia del reloj
  */
 bool  ClockEnableAlarm(clock_t clock);
+
+/**
+ * @brief Funcion para obtener el modo en que se encuentra el reloj
+ *
+ * @param clock puntero al objeto reloj
+ * @return Clock_Mode_t el estado en que se encuentra el reloj
+ */
+clock_state_t Clock_Mode(clock_t clock);
+
+/**
+ * @brief Funcion para cambiar el estado del reloj
+ *
+ * @param clock puntero al objeto reloj
+ * @param mode modo del reloj
+ * @param Screen puntero a la pantalla
+ */
+void Change_Mode(clock_t clock, clock_state_t mode, screen_t screen);
+
+/**
+ * @brief Funcion para incrementar
+ * 
+ * @param clock_time puntero a la hora
+ * @param inc_minutes decide si es minutos(true) u horas(false)
+ */
+void Clock_Increment(clock_time_t *clock_time, bool inc_minutes);
+
+/**
+ * @brief Funcion para decrementar
+ * 
+ * @param clock_time puntero a la hora
+ * @param dec_minutes decide si es minutos(true) u horas(false)
+ */
+void ClockDecrement(clock_time_t *clock_time, bool dec_minutes);
+
+/**
+ * @brief Funcion para obtener los valores de los segmentos de los displays
+ * 
+ * @param clock_time puntero a la hora
+ * @param value arreglo de los segmentos del BCD
+ */
+void ClockGetDisplaysValues(clock_time_t * clock_time, uint8_t value[]);
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus

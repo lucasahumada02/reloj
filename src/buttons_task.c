@@ -49,10 +49,6 @@ void ButtonPushTask(void * args) {
     while (1) {
         if (DigitalInputWasActivated(parameters->button)) {
             xEventGroupSetBits(parameters->clock_events, parameters->event_push);
-
-            // Prueba visual: escribir "01" en pantalla al detectar pulsación corta
-            uint8_t short_press_val[2] = {0, 1};
-            ScreenWriteBCD(parameters->screen, short_press_val, 2);
         }
         vTaskDelay(pdMS_TO_TICKS(DELAY_BUTTON));
     }
@@ -72,10 +68,6 @@ void ButtonHoldTask(void * args) {
             } else if (!event_triggered && (xTaskGetTickCount() - press_start >= pdMS_TO_TICKS(HOLS_PRESS_TIME))) {
                 xEventGroupSetBits(parameters->clock_events, parameters->event_hold);
                 event_triggered = true;
-
-                // Prueba visual: escribir "99" en pantalla al detectar pulsación larga
-                uint8_t long_press_val[2] = {9, 9};
-                ScreenWriteBCD(parameters->screen, long_press_val, 2);
             }
         } else {
             is_pressed = false;
