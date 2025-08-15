@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
+Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,17 +17,15 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file display.c
- ** @brief Implementacion de la tarea de pantalla
+/** @file time_task.c
+ ** @brief Implementacion del tiempo del reloj
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "display.h"
+#include "time_task.h"
 
 /* === Macros definitions ========================================================================================== */
-
-#define REFRESH 1
 
 /* === Private data type declarations ============================================================================== */
 
@@ -41,17 +39,17 @@ SPDX-License-Identifier: MIT
 
 /* === Public function implementation ============================================================================== */
 
-void Refresh_Task(void * args) {
-    refresh_args_t parameters = args;
-    TickType_t duration;
-    TickType_t last_time = xTaskGetTickCount();
-    duration = pdMS_TO_TICKS(1);
+void Tick_Task(void * args) {
+    tick_args_t parameters = args;
+    TickType_t last_time;
+    last_time = xTaskGetTickCount();
+    TickType_t duration = pdMS_TO_TICKS(1000);
+
     while (true) {
-        if (xSemaphoreTake(parameters->screen_mutex, portMAX_DELAY)) {
-            ScreenRefresh(parameters->board->screen);
-        }
-        xSemaphoreGive(parameters->screen_mutex);
         vTaskDelayUntil(&last_time, duration);
+        // Indicador de que avanza 1 seg
+        DigitalOutputToggle(parameters->board->led_green);
+        xEventGroupSetBits(parameters->clock_events, parameters->tick_event);
     }
 }
 

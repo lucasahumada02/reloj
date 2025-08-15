@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
+Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,11 +17,11 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef DISPLAY_H_
-#define DISPLAY_H_
+#ifndef CLOCK_TASK_H_
+#define CLOCK_TASK_H_
 
-/** @file display.h
- ** @brief Modulo para la declaraciones de la tarea del display
+/** @file clock_task.h
+ ** @brief Modulo para implementación de tarea del reloj
  **/
 
 /* === Headers files inclusions ==================================================================================== */
@@ -30,8 +30,8 @@ SPDX-License-Identifier: MIT
 #include "task.h"
 #include "event_groups.h"
 #include "semphr.h"
+#include "clock.h"
 #include "bsp.h"
-
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -41,26 +41,13 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define REFRESH_TASK_SRACK_SIZE (2 * configMINIMAL_STACK_SIZE)
+#define CLOCK_TASK_STACK_SIZE (2 * configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
-
-typedef struct refresh_args_s {
-    board_t board;                  
-    EventGroupHandle_t clock_events;
-    SemaphoreHandle_t screen_mutex; 
-} * refresh_args_t;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
-
-/**
- * @brief Tarea Refresco para actualizar la pantalla
- * 
- * @param args
- */
-void Refresh_Task(void * args);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -68,4 +55,4 @@ void Refresh_Task(void * args);
 }
 #endif
 
-#endif /* DISPLAY_H_ */
+#endif /* CLOCK_TASK_H_ */

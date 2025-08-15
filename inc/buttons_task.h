@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
+Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,21 +17,23 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef TICK_CLOCK_TASK_H_
-#define TICK_CLOCK_TASK_H_
+#ifndef BUTTONS_TASK_H_
+#define BUTTONS_TASK_H_
 
-/** @file tick_clock_task.h
- ** @brief Modulo del tiempo del reloj para declaraciones
+/** @file buttons_task.h
+ ** @brief Modulo para declaraciones de tarea de los botones
  **/
 
 /* === Headers files inclusions ==================================================================================== */
-
 #include "FreeRTOS.h"
-#include "task.h"
 #include "event_groups.h"
-#include "bsp.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
 #include "clock.h"
-
+#include "bsp.h"
+#include "digital.h"
+#include "screen.h"
 /* === Header for C++ compatibility ================================================================================ */
 
 #ifdef __cplusplus
@@ -40,28 +42,45 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define SECOND_EVENT (1 << 0)
-#define TICK_TASK_STACK_SIZE (2 * configMINIMAL_STACK_SIZE)
+#define BUTTON_EVENT_KEY_0     (1 << 0)
+#define BUTTON_EVENT_KEY_1     (1 << 1)
+#define BUTTON_EVENT_KEY_2     (1 << 2)
+#define BUTTON_EVENT_KEY_3     (1 << 3)
+#define BUTTON_EVENT_KEY_4     (1 << 4)
+#define BUTTON_EVENT_KEY_5     (1 << 5)
+#define BUTTON_EVENT_LONG_0     (1 << 6)
+#define BUTTON_EVENT_LONG_1     (1 << 7)
+
+#define BUTTON_TASK_STACK_SIZE (2 * configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
 
-typedef struct tick_args_s {
-    EventGroupHandle_t clock_events;
-    board_t board;
-    uint8_t tick_event;
-} * tick_args_t;
-
-
 /* === Public variable declarations ================================================================================ */
+
+typedef struct button_args_s {
+    board_t board;                   // Objeto placa
+    EventGroupHandle_t clock_events; // grupo de eventos
+    uint8_t event_push;         // Bits asociados a evento de presionar un boton
+    uint8_t event_hold;          // evento asociado presionar un boton durante x tiempo
+    digital_input_t button;             // Entrada digital
+    screen_t screen;
+} * button_args_t;
 
 /* === Public function declarations ================================================================================ */
 
 /**
- * @brief Tarea Tick para avanzar el reloj
+ * @brief Funcion de presion del boton en un tiempo corto
  * 
- * @param args
+ * @param args puntero a parametro
  */
-void Tick_Task(void * args);
+void ButtonPushTask(void * args);
+
+/**
+ * @brief Funcion de presion del boton en un tiempo largp
+ * 
+ * @param args puntero a parametro
+ */
+void ButtonHoldTask(void * args);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -69,4 +88,4 @@ void Tick_Task(void * args);
 }
 #endif
 
-#endif /* TICK_CLOCK_TASK_H_ */
+#endif /* PLANTILLA_H_ */
