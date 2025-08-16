@@ -31,6 +31,7 @@ SPDX-License-Identifier: MIT
 #include "screen.h"
 #include "edu_ciaa.h"
 #include <stdlib.h>
+#include "board.h"
 
 
 /* === Macros definitions ========================================================================================== */
@@ -57,9 +58,6 @@ static const struct screen_driver_s screen_driver = {
   .DigitTurnOn = DigitTurnOn,
 };
 
-static display_update_callback_t display_callback = NULL;
-
-static board_t current_board = NULL;
 /* === Public variable definitions ================================================================================= */
 
 /* === Private function definitions ================================================================================ */
@@ -137,6 +135,8 @@ static void DigitTurnOn(uint8_t digit){
 board_t BoardCreate(void){
     struct board_s * board = malloc(sizeof(struct board_s));
     if (board != NULL){ 
+      BoardSetup();
+      BoardSetup();
       DigitsInit();
       SegmentsInit();
       board->screen = ScreenCreate(4, &screen_driver);
@@ -180,22 +180,5 @@ void SysTickInit(uint16_t ticks) {
     NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
     
     __asm volatile("cpsie i"); // Habilita las interrupciones
-}
-
-void BoardSetDisplayCallback(board_t board, display_update_callback_t callback) {
-    display_callback = callback;
-    current_board = board;
-}
-
-void SysTick_Handler(void) {
-    static uint16_t flash_counter = 0;
-    
-    ScreenRefresh(current_board->screen);
-    
-    if (display_callback) {
-        display_callback();
-    }
-    
-    flash_counter++;
 }
 /* === End of documentation ======================================================================================== */

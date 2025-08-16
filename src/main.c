@@ -44,52 +44,34 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "clock.h"
+#include <stdlib.h>
+#include "FreeRTOS.h"
+#include "event_groups.h"
+#include "task.h"
+#include "semphr.h"
+#include "buttons_task.h"
+#include <string.h>
+#include "time_task.h"
+#include "extras.h"
+#include "refresh_task.h"
+#include "state_task.h"
+
 
 /* === Macros definitions ====================================================================== */
 
-#define CLOCK_TICKS_PER_SECOND 1000  ///< Cantidad de ticks por segundo
-#define BUTTON_SET_DELAY 3000        ///< Tiempo de presión para entrar en modo ajuste (ms)
-#define DISPLAY_FLASH_FREQUENCY 300  ///< Frecuencia de parpadeo de dígitos
-#define INACTIVITY_TIMEOUT_MS 30000  ///< Tiempo máximo de inactividad (ms)
-
 /* === Private data type declarations ========================================================== */
-
-/**
- * @brief Estados de funcionamiento del reloj
- *
- */
-typedef enum {
-    UNCONFIGURED,     //!< Hora no configurada
-    SHOW_TIME,        //!< Visualización de hora actual
-    SET_TIME_MINUTE,  //!< Configuración de los minutos 
-    SET_TIME_HOUR,    //!< Configuración de las horas
-    SET_ALARM_MINUTE, //!< Configuración de los minutos de la alarma
-    SET_ALARM_HOUR,   //!< Configuración de las horas de la alarma
-} states_clock;
-
-/**
- * @brief Estados de boton
- * 
- */
-typedef struct {
-    bool is_pressed;            //!< Boton presionado
-    bool was_processed;         //!< Ya fue presionado el boton
-    uint32_t press_start_time;  //!< Empieza a presionar el boton
-} button_status_t;
 
 /* === Private variable declarations =========================================================== */
 
-static board_t board;
-static clock_t clock;
-static states_clock current_mode;
-static uint8_t digits[4];
-
-static volatile uint32_t inactivity_timer = 0;
-static volatile uint32_t system_ticks = 0;
-
-/* botones largos */
-static button_status_t btn_set_time_status = {0};
-static button_status_t btn_set_alarm_status = {0};
+board_t board;
+clock_t clock;
+clock_mode_t mode;
+clock_time_t hour = {0};
+clock_time_t alarm = {0};
+uint8_t digits[4] = {0};
+SemaphoreHandle_t hourMutex;
+EventGroupHandle_t keyEventGroup;
+tick_args_t tick_param;
 
 /* === Private function declarations =========================================================== */
 
@@ -100,66 +82,6 @@ static button_status_t btn_set_alarm_status = {0};
  */
 static void AlarmaRinging(clock_t clock);
 
-/**
- * @brief Cambia el estado del reloj
- * 
- * @param new_mode Nuevo estado a trabajar
- */
-static void clock_switch_mode(states_clock new_mode);
-
-/**
- * @brief Incrementa el valor de un numero en BCD respetando un limite maximo
- * 
- * @param units Unidades
- * @param tens Decenas
- * @param max_units Máximo de unidades
- * @param max_tens Máximo de decenas
- */
-static void clock_increment_bcd(uint8_t *units, uint8_t *tens, uint8_t max_units, uint8_t max_tens);
-
-/**
- * @brief Decrementa el valor de un numero en BCD respetando un limite maximo
- * 
- * @param units Unidades
- * @param tens Decenas
- * @param max_units Máximo de unidades
- * @param max_tens Máximo de decenas
- */
-static void clock_decrement_bcd(uint8_t *units, uint8_t *tens, uint8_t max_units, uint8_t max_tens);
-
-/**
- * @brief Convierte un tiempo de un arreglo BCD de 4 dígitos a clock_time_t
- * 
- * @param time Puntero a la estructura de tiempo  clock_time_t
- * @param bcd Puntero a un arreglo de 4 elementos donde se almacena el tiempo en formato [decena_hora, unidad_hora,
- * decena_minuto, unidad_minuto]
- */
-static void clock_convert_time_to_bcd(clock_time_t *time, uint8_t *bcd);
-
-/**
- * @brief Convierte un tiempo en formato clock_time_t a un arreglo BCD de 4 dígitos.
- * 
- * @param time Puntero a la estructura de tiempo  clock_time_t
- * @param bcd Puntero a un arreglo de 4 elementos donde se almacena el tiempo en formato [decena_hora, unidad_hora,
- * decena_minuto, unidad_minuto]
- */
-static void clock_convert_bcd_to_time(clock_time_t *time, uint8_t *bcd);
-
-/**
- * @brief Controla el tiempo de boton presionado
- * 
- * @param button boton presionado
- * @param status estado del boton
- * @param delay tiempo presionado
- * @return true presionado tiempo necesario
- * @return false no presionado el tiempo necesario
- */
-static bool btn_check_long_press(digital_input_t button, button_status_t *status, uint32_t delay_ms);
-
-/**
- * @brief Actualiza la lógica del display llamada desde SysTick
- */
-static void UpdateDisplayLogic(void);
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
@@ -174,277 +96,54 @@ static void AlarmaRinging(clock_t clock){
     }
 }
 
-static bool btn_check_long_press(digital_input_t button, button_status_t *status, uint32_t delay_ms) {
-    const uint32_t debounce = 50;
-    if (DigitalInputGetIsActive(button)) {
-        if (!status->is_pressed) {
-            status->is_pressed = true;
-            status->press_start_time = system_ticks;
-            status->was_processed = false;
-            inactivity_timer = 0;
-        } else if (!status->was_processed) {
-            uint32_t held = system_ticks - status->press_start_time;
-            if (held >= delay_ms + debounce) {
-                status->was_processed = true;
-                return true;
-            }
-        }
-    } else {
-        status->is_pressed = false;
-        status->was_processed = false;
-        status->press_start_time = 0;
-    }
-    return false;
-}
-
-static void clock_switch_mode(states_clock new_mode) {
-    current_mode = new_mode;
-    inactivity_timer = 0;
-    switch (current_mode) {
-    case UNCONFIGURED:
-        DisplayFlashDigits(board->screen, 0, 3, DISPLAY_FLASH_FREQUENCY/2);
-        ScreenSetDot(board->screen, 1, true);
-        break;
-    case SHOW_TIME:
-        DisplayFlashDigits(board->screen, 0, 0, 0);
-        ScreenSetDot(board->screen, 1, false);
-        break;
-    case SET_TIME_MINUTE:
-        DisplayFlashDigits(board->screen, 2, 3, DISPLAY_FLASH_FREQUENCY/2);
-        break;
-    case SET_TIME_HOUR:
-        DisplayFlashDigits(board->screen, 0, 1, DISPLAY_FLASH_FREQUENCY/2);
-        break;
-    case SET_ALARM_MINUTE:
-        DisplayFlashDigits(board->screen, 2, 3, DISPLAY_FLASH_FREQUENCY/2);
-        ScreenSetDot(board->screen, 0, true);
-        ScreenSetDot(board->screen, 1, true);
-        ScreenSetDot(board->screen, 2, true);
-        ScreenSetDot(board->screen, 3, true);
-        break;
-    case SET_ALARM_HOUR:
-        DisplayFlashDigits(board->screen, 0, 1, DISPLAY_FLASH_FREQUENCY/2);
-        ScreenSetDot(board->screen, 0, true);
-        ScreenSetDot(board->screen, 1, true);
-        ScreenSetDot(board->screen, 2, true);
-        ScreenSetDot(board->screen, 3, true);
-        break;
-    }
-}
-
-static void clock_increment_bcd(uint8_t *units, uint8_t *tens, uint8_t max_units, uint8_t max_tens) {
-    (*units)++;
-    if (*units > 9) {
-        *units = 0;
-        (*tens)++;
-    }
-
-    if ((*tens == max_tens && *units > max_units) || *tens > max_tens) {
-        *tens = 0;
-        *units = 0;
-    }
-}
-
-static void clock_decrement_bcd(uint8_t *units, uint8_t *tens, uint8_t max_units, uint8_t max_tens) {
-    if (*units > 0) {
-        (*units)--;
-    } else {
-        *units = 9;
-        if (*tens > 0) {
-            (*tens)--;
-        } else {
-            *tens = max_tens;
-            *units = max_units;
-        }
-    }
-}
-
-static void clock_convert_time_to_bcd(clock_time_t *time, uint8_t digits[]) {
-     if (time && digits) {
-        digits[0] = time->bcd[5]; // Hora de decenas
-        digits[1] = time->bcd[4]; // Hora de unidades
-        digits[2] = time->bcd[3]; // Minuto de decenas
-        digits[3] = time->bcd[2]; // Minuto de unidades
-    }
- }
-
-static void clock_convert_bcd_to_time(clock_time_t *time, uint8_t digits[]) {
-     if (time && digits) {
-        time->bcd[5] = digits[0]; // Hora de decenas
-        time->bcd[4] = digits[1]; // Hora de unidades
-        time->bcd[3] = digits[2]; // Minuto de decenas
-        time->bcd[2] = digits[3]; // Minuto de unidades
-        time->bcd[1] = 0;
-        time->bcd[0] = 0;
-    }
-}
-
-static void UpdateDisplayLogic(void) {
-    static uint16_t flash_counter = 0;
-    clock_time_t time;
-
-    ClockNewTick(clock);
-    system_ticks++;
-    inactivity_timer++;
-
-    if (current_mode == SHOW_TIME) {
-        flash_counter = (flash_counter + 1) % 1000;
-
-        if (ClockGetTime(clock, &time)) {
-            clock_convert_time_to_bcd(&time, digits);
-            ScreenWriteBCD(board->screen, digits, sizeof(digits));
-        }
-
-        if (flash_counter > 500) {
-            ScreenSetDot(board->screen, 1, true);
-        } else {
-            ScreenSetDot(board->screen, 1, false);
-        }
-
-        if (ClockIsAlarmEnabled(clock)) {
-            ScreenSetDot(board->screen, 3, true);
-        } else {
-            ScreenSetDot(board->screen, 3, false);
-        }
-
-        if (ClockIsAlarmActive(clock)) {
-            ScreenSetDot(board->screen, 0, true);
-            DigitalOutputActivate(board->led_red);
-        } else {
-            ScreenSetDot(board->screen, 0, false);
-            DigitalOutputDeactivate(board->led_red);
-        }
-    } else if (current_mode == UNCONFIGURED) {
-        digits[0] = digits[1] = digits[2] = digits[3] = 0;
-        ScreenWriteBCD(board->screen, digits, sizeof(digits));
-        ScreenSetDot(board->screen, 1, true);
-    }else if (current_mode == SET_ALARM_MINUTE || current_mode == SET_ALARM_HOUR) {
-        ScreenSetDot(board->screen, 0, true);
-        ScreenSetDot(board->screen, 1, true);
-        ScreenSetDot(board->screen, 2, true);
-        ScreenSetDot(board->screen, 3, true);
-    }
-}
-
-static void HandleButtons(void) {
-    clock_time_t current_time_data, alarm_time_data;
-
-    // Presión larga F1: entrar a set time minute
-    if (btn_check_long_press(board->set_time, &btn_set_time_status, BUTTON_SET_DELAY)) {
-        if (ClockGetTime(clock, &current_time_data)) {
-            clock_convert_time_to_bcd(&current_time_data, digits);
-        } else {
-            digits[0] = digits[1] = digits[2] = digits[3] = 0;  // Inicia en 00:00 si no configurado
-        }
-        ScreenWriteBCD(board->screen, digits, sizeof(digits));
-        clock_switch_mode(SET_TIME_MINUTE);
-    }
-
-    // Presión larga F2: entrar a set alarm minute
-    if (btn_check_long_press(board->set_alarm, &btn_set_alarm_status, BUTTON_SET_DELAY)) {
-        if (ClockGetAlarm(clock, &alarm_time_data)) {
-            clock_convert_time_to_bcd(&alarm_time_data, digits);
-        } else {
-            digits[0] = digits[1] = digits[2] = digits[3] = 0;
-        }
-        ScreenWriteBCD(board->screen, digits, sizeof(digits));
-        clock_switch_mode(SET_ALARM_MINUTE);
-    }
-
-    // Accept
-    if (DigitalInputWasDeactivated(board->accept)) {
-        if (current_mode == SHOW_TIME) {
-            if (ClockIsAlarmActive(clock)) {
-                ClockSnoozeAlarm(clock);
-            }else if (!ClockIsAlarmEnabled(clock) && ClockGetAlarm(clock, &alarm_time_data)) {
-            ClockEnableAlarm(clock); 
-        }
-        } else if (current_mode == SET_TIME_MINUTE) {
-            clock_switch_mode(SET_TIME_HOUR);
-        } else if (current_mode == SET_TIME_HOUR) {
-            clock_convert_bcd_to_time(&current_time_data, digits);
-            ClockSetTime(clock, &current_time_data);
-            clock_switch_mode(SHOW_TIME);
-        } else if (current_mode == SET_ALARM_MINUTE) {
-            clock_switch_mode(SET_ALARM_HOUR);
-        } else if (current_mode == SET_ALARM_HOUR) {
-            clock_convert_bcd_to_time(&alarm_time_data, digits);
-            ClockSetAlarm(clock, &alarm_time_data);
-            clock_switch_mode(SHOW_TIME);
-        }
-    }
-
-    // Cancel
-    if (DigitalInputWasDeactivated(board->cancel)) {
-        if (current_mode == SHOW_TIME) {
-            if (ClockIsAlarmActive(clock)) {
-                ClockPostponeAlarmToNextDay(clock);
-            } else if (ClockIsAlarmEnabled(clock)) {
-                ClockDisableAlarm(clock);
-            }
-        } else if (current_mode == SET_TIME_MINUTE || current_mode == SET_TIME_HOUR) {
-            if (ClockGetTime(clock, &current_time_data)) {
-                clock_switch_mode(SHOW_TIME);
-            } else {
-                clock_switch_mode(UNCONFIGURED);
-            }
-        } else if (current_mode == SET_ALARM_MINUTE || current_mode == SET_ALARM_HOUR) {
-            clock_switch_mode(SHOW_TIME);
-        }
-    }
-
-    // Decrement
-    if (DigitalInputWasDeactivated(board->decrement)) {
-        inactivity_timer = 0;
-        if (current_mode == SET_TIME_MINUTE || current_mode == SET_ALARM_MINUTE) {
-            clock_decrement_bcd(&digits[3], &digits[2], 9, 5);
-        } else if (current_mode == SET_TIME_HOUR || current_mode == SET_ALARM_HOUR) {
-            clock_decrement_bcd(&digits[1], &digits[0], 3, 2);
-        }
-        ScreenWriteBCD(board->screen, digits, sizeof(digits));
-    }
-
-    // Increment
-    if (DigitalInputWasDeactivated(board->increment)) {
-        inactivity_timer = 0;
-        if (current_mode == SET_TIME_MINUTE || current_mode == SET_ALARM_MINUTE) {
-            clock_increment_bcd(&digits[3], &digits[2], 9, 5);
-        } else if (current_mode == SET_TIME_HOUR || current_mode == SET_ALARM_HOUR) {
-            clock_increment_bcd(&digits[1], &digits[0], 3, 2);
-        }
-        ScreenWriteBCD(board->screen, digits, sizeof(digits));
-    }
-
-    // Inactividad
-    if ((current_mode == SET_TIME_MINUTE || current_mode == SET_TIME_HOUR ||
-         current_mode == SET_ALARM_MINUTE || current_mode == SET_ALARM_HOUR) &&
-        inactivity_timer >= INACTIVITY_TIMEOUT_MS) {
-        if (current_mode == SET_TIME_MINUTE || current_mode == SET_TIME_HOUR) {
-            if (ClockGetTime(clock, &current_time_data)) {
-                clock_switch_mode(SHOW_TIME);
-            } else {
-                clock_switch_mode(UNCONFIGURED);
-            }
-        } else {
-            clock_switch_mode(SHOW_TIME);
-        }
-    }
-}
 /* === Public function implementation ========================================================= */
 
-int main(void) {
-
-    clock = ClockCreate(CLOCK_TICKS_PER_SECOND, AlarmaRinging);
+int main(void) { 
     board = BoardCreate();
-    BoardSetDisplayCallback(board, UpdateDisplayLogic);
-    SysTickInit(CLOCK_TICKS_PER_SECOND);
-    clock_switch_mode(UNCONFIGURED);
+    clock = ClockCreate(1000, AlarmaRinging);
+    SysTickInit(1000);
+    tick_param = malloc(sizeof(*tick_param));
+    hourMutex = xSemaphoreCreateMutex();
+    keyEventGroup = xEventGroupCreate();
+    ClockGetTime(clock, &tick_param->hour);
+    clock_convert_time_to_bcd(&tick_param->hour, digits);
+    ScreenWriteBCD(board->screen, digits, sizeof(digits));
+    
+    tick_param->clock = clock;
+    tick_param->hour = hour;
+    xTaskCreate(TimeTask, "TickTask", TICK_TASK_STACK_SIZE, tick_param, tskIDLE_PRIORITY + 3, NULL);
 
-    while (true) {
-        HandleButtons();
-    }
- }
+    xTaskCreate(RefreshTask,"RefreshTask",REFRESH_TASK_STACK_SIZE,NULL,tskIDLE_PRIORITY+4,NULL);
 
+    xTaskCreate(StateTask,"StateTask",STATE_TASK_STACK_SIZE,NULL,tskIDLE_PRIORITY+2,NULL);
+
+    button_args_t btnAccept = malloc(sizeof(struct button_args_s));
+    btnAccept->clock_events = keyEventGroup; btnAccept->event_push = ACCEPT; btnAccept->button = board->accept;
+    xTaskCreate(ButtonPushTask,"BtnAccept",BUTTON_TASK_STACK_SIZE,btnAccept,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnCancel = malloc(sizeof(struct button_args_s));
+    btnCancel->clock_events = keyEventGroup; btnCancel->event_push = CANCEL; btnCancel->button = board->cancel;
+    xTaskCreate(ButtonPushTask,"BtnCancel",BUTTON_TASK_STACK_SIZE,btnCancel,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnInc = malloc(sizeof(struct button_args_s));
+    btnInc->clock_events = keyEventGroup; btnInc->event_push = INCREMENT; btnInc->button = board->increment;
+    xTaskCreate(ButtonPushTask,"BtnInc",BUTTON_TASK_STACK_SIZE,btnInc,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnDec = malloc(sizeof(struct button_args_s));
+    btnDec->clock_events = keyEventGroup; btnDec->event_push = DECREMENT; btnDec->button = board->decrement;
+    xTaskCreate(ButtonPushTask,"BtnDec",BUTTON_TASK_STACK_SIZE,btnDec,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnSetTime = malloc(sizeof(struct button_args_s));
+    btnSetTime->clock_events = keyEventGroup; btnSetTime->event_hold = SET_TIME; btnSetTime->button = board->set_time;
+    xTaskCreate(ButtonHoldTask,"BtnSetTime",BUTTON_TASK_STACK_SIZE,btnSetTime,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnSetAlarm = malloc(sizeof(struct button_args_s));
+    btnSetAlarm->clock_events = keyEventGroup; btnSetAlarm->event_hold = SET_ALARM; btnSetAlarm->button = board->set_alarm;
+    xTaskCreate(ButtonHoldTask,"BtnSetAlarm",BUTTON_TASK_STACK_SIZE,btnSetAlarm,tskIDLE_PRIORITY+1,NULL);
+
+    vTaskStartScheduler();
+    while(1){}
+}
 /* === End of documentation ==================================================================== */
 
 /** @} End of module definition for doxygen */
