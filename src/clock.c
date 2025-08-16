@@ -47,7 +47,6 @@ struct clock_s {
     bool alarm_cancelled_today;      /**< Indica si la alarma fue cancelada hoy */
     bool alarm_ringing;              /**< Indica si la alarma está sonando */
     clock_alarm_callback_t callback;
-    clock_state_t actual_state;        /**< Indica el estado actual del reloj */
 };
 /* === Public variable definitions ================================================================================= */
 
@@ -258,109 +257,5 @@ bool ClockEnableAlarm(clock_t self){
         return true;
     }
     return false;
-}
-
-clock_state_t Clock_Mode(clock_t self){
-    return self->actual_state;
-}
-
-void Change_Mode(clock_t clock, clock_state_t mode, screen_t screen) {
-    clock->actual_state = mode;
-    switch (clock->actual_state) {
-    case unconfigured:
-        DisplayFlashDigits(screen, 0, 3, 150);
-        ScreenSetDot(screen, 1, true);
-        break;
-    case show_time:
-        DisplayFlashDigits(screen, 0, 0, 0);
-        ScreenSetDot(screen, 1, false);
-        break;
-    case set_minutes_time:
-        DisplayFlashDigits(screen, 2, 3, 150);
-        break;
-    case set_hours_time:
-        DisplayFlashDigits(screen, 0, 1, 150);
-        break;
-
-    case set_minutes_alarm:
-        DisplayFlashDigits(screen, 2, 3, 150);
-        ScreenSetDot(screen, 0, true);
-        ScreenSetDot(screen, 1, true);
-        ScreenSetDot(screen, 2, true);
-        ScreenSetDot(screen, 3, true);
-        break;
-    case set_hours_alarm:
-        DisplayFlashDigits(screen, 0, 1, 150);
-        ScreenSetDot(screen, 0, true);
-        ScreenSetDot(screen, 1, true);
-        ScreenSetDot(screen, 2, true);
-        ScreenSetDot(screen, 3, true);
-
-        break;
-    default:
-        break;
-    }
-}
-
-void Clock_Increment(clock_time_t *clock_Time, bool inc_minutes) {
-    if (inc_minutes) {
-        // Incrementa minutos BCD (00…59)
-        clock_Time->time.minutes[0]++;                        // unidades
-        if (clock_Time->time.minutes[0] == 10) {
-            clock_Time->time.minutes[0] = 0;
-            clock_Time->time.minutes[1]++;                    // decenas
-        }
-        if (clock_Time->time.minutes[1] == 6) {               // rollover a 00
-            clock_Time->time.minutes[1] = 0;
-        }
-    } else {
-        // Incrementa horas BCD (00…23)
-        clock_Time->time.hours[0]++;                          // unidades
-        if (clock_Time->time.hours[0] == 10) {
-            clock_Time->time.hours[0] = 0;
-            clock_Time->time.hours[1]++;                      // decenas
-        }
-        // Si llega a 24 o supera 29 (por seguridad), vuelve a 00
-        if ((clock_Time->time.hours[1] == 2 && clock_Time->time.hours[0] == 4)
-            || clock_Time->time.hours[1] > 2) {
-            clock_Time->time.hours[1] = 0;
-            clock_Time->time.hours[0] = 0;
-        }
-    }
-}
-
-void ClockDecrement(clock_time_t *clk, bool dec_minutes) {
-    uint8_t *units = dec_minutes 
-                     ? &clk->time.minutes[0] 
-                     : &clk->time.hours[0];
-    uint8_t *tens   = dec_minutes 
-                     ? &clk->time.minutes[1] 
-                     : &clk->time.hours[1];
-
-    // Paso 1: resto la unidad si es posible
-    if (*units > 0) {
-        (*units)--;
-    } else {
-        // unidad llega a -1 → borro y resto 1 al dígito de las decenas
-        *units = 9;
-        if (*tens > 0) {
-            (*tens)--;
-        } else {
-            // decenas a -1 → rollover máximo
-            *tens = dec_minutes ? 5 : 2;
-        }
-    }
-
-    // Paso 2: caso especial para horas: cuando decenas==2, unidades max=3
-    if (!dec_minutes && *tens == 2 && *units > 3) {
-        *units = 3;
-    }
-}
-
-void ClockGetDisplaysValues(clock_time_t * clock_time, uint8_t value[]) {
-    value[0] = clock_time->time.hours[1];
-    value[1] = clock_time->time.hours[0];
-    value[2] = clock_time->time.minutes[1];
-    value[3] = clock_time->time.minutes[0];
 }
 /* === End of documentation ======================================================================================== */

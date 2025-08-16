@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
+Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,17 +17,15 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file display_task.c
- ** @brief Implementacion de la tarea de pantalla
+/** @file extras.c
+ ** @brief Implementacion de las funciones extras
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "display_task.h"
+#include "extras.h"
 
 /* === Macros definitions ========================================================================================== */
-
-#define REFRESH 1
 
 /* === Private data type declarations ============================================================================== */
 
@@ -41,17 +39,58 @@ SPDX-License-Identifier: MIT
 
 /* === Public function implementation ============================================================================== */
 
-void Refresh_Task(void * args) {
-    refresh_args_t parameters = args;
-    TickType_t duration;
-    TickType_t last_time = xTaskGetTickCount();
-    duration = pdMS_TO_TICKS(1);
-    while (true) {
-        if (xSemaphoreTake(parameters->screen_mutex, portMAX_DELAY)) {
-            ScreenRefresh(parameters->board->screen);
+void clock_convert_time_to_bcd(clock_time_t * time, uint8_t digits[]) {
+    if (time && digits) {
+        digits[0] = time->bcd[5]; // Hora de decenas
+        digits[1] = time->bcd[4]; // Hora de unidades
+        digits[2] = time->bcd[3]; // Minuto de decenas
+        digits[3] = time->bcd[2]; // Minuto de unidades
+    }
+}
+
+void clock_convert_bcd_to_time(clock_time_t * time, uint8_t digits[]) {
+    if (time && digits) {
+        time->bcd[5] = digits[0]; // Hora de decenas
+        time->bcd[4] = digits[1]; // Hora de unidades
+        time->bcd[3] = digits[2]; // Minuto de decenas
+        time->bcd[2] = digits[3]; // Minuto de unidades
+        time->bcd[1] = 0;
+        time->bcd[0] = 0;
+    }
+}
+
+uint8_t GetMaxUnits(uint8_t tens, uint8_t max_tens, uint8_t max_units) {
+    if (tens == max_tens) {
+        return max_tens;
+    }
+    return 9;
+}
+
+void clock_increment_bcd(uint8_t * units, uint8_t * tens, uint8_t max_units, uint8_t max_tens) {
+    (*units)++;
+    uint8_t current_max_units = GetMaxUnits(*tens, max_tens, max_units);
+    if (*units > current_max_units) {
+        *units = 0;
+        (*tens)++;
+
+        if (*tens > max_tens) {
+            *tens = 0;
+            *units = 0;
         }
-        xSemaphoreGive(parameters->screen_mutex);
-        vTaskDelayUntil(&last_time, duration);
+    }
+}
+
+void clock_decrement_bcd(uint8_t * units, uint8_t * tens, uint8_t max_units, uint8_t max_tens) {
+    if (*units > 0) {
+        (*units)--;
+    } else {
+        if (*tens > 0) {
+            (*tens)--;
+            *units = GetMaxUnits(*tens, max_tens, max_units);
+        } else {
+            *tens = max_tens;
+            *units = GetMaxUnits(*tens, max_tens, max_units);
+        }
     }
 }
 

@@ -29,6 +29,7 @@ SPDX-License-Identifier: MIT
 #include "FreeRTOS.h"
 #include "task.h"
 #include "event_groups.h"
+#include "semphr.h"
 #include "bsp.h"
 #include "clock.h"
 
@@ -40,18 +41,17 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define SECOND_EVENT (1 << 0)
+#define SECOND_EVENT (1 << 10)
 #define TICK_TASK_STACK_SIZE (2 * configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
 
 typedef struct tick_args_s {
-    EventGroupHandle_t clock_events;
-    board_t board;
-    uint8_t tick_event;
+    clock_t clock;
+    clock_time_t hour;
 } * tick_args_t;
 
-
+extern SemaphoreHandle_t hourMutex;
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
@@ -61,7 +61,7 @@ typedef struct tick_args_s {
  * 
  * @param args
  */
-void Tick_Task(void * args);
+void TimeTask(void * args);
 
 /* === End of conditional blocks =================================================================================== */
 

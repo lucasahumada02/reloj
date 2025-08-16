@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
+Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,21 +17,25 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef DISPLAY_TASK_H_
-#define DISPLAY_TASK_H_
+#ifndef STATE_TASK_H_
+#define STATE_TASK_H_
 
-/** @file display_task.h
- ** @brief Modulo para la declaraciones de la tarea del display
+/** @file state_task.h
+ ** @brief Modulo para declaracion de la tarea de estados del reloj
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "event_groups.h"
 #include "semphr.h"
+#include "event_groups.h"
 #include "bsp.h"
-
+#include "clock.h"
+#include "extras.h"
+#include "refresh_task.h"
+#include "buttons_task.h"
+#include "time_task.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -41,26 +45,27 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define REFRESH_TASK_SRACK_SIZE (2 * configMINIMAL_STACK_SIZE)
+#define ACCEPT BUTTON_EVENT_KEY_0    // Boton "Aceptar"
+#define CANCEL BUTTON_EVENT_KEY_1    // Boton "Cancelar"
+#define SET_TIME BUTTON_EVENT_LONG_0  // Boton "Setear Tiempo"
+#define SET_ALARM BUTTON_EVENT_LONG_1 // Boton "Setear Alarma"
+#define DECREMENT BUTTON_EVENT_KEY_4 // Boton "Decrementar valor"
+#define INCREMENT BUTTON_EVENT_KEY_5 // Boton "Incrementar valor"
+
+#define STATE_TASK_STACK_SIZE configMINIMAL_STACK_SIZE*2
 
 /* === Public data type declarations =============================================================================== */
-
-typedef struct refresh_args_s {
-    board_t board;                  
-    EventGroupHandle_t clock_events;
-    SemaphoreHandle_t screen_mutex; 
-} * refresh_args_t;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
 /**
- * @brief Tarea Refresco para actualizar la pantalla
+ * @brief Tarea para los estados del reloj
  * 
- * @param args
+ * @param pointer 
  */
-void Refresh_Task(void * args);
+void StateTask(void * pointer);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -68,4 +73,4 @@ void Refresh_Task(void * args);
 }
 #endif
 
-#endif /* DISPLAY_TASK_H_ */
+#endif /* STATE_TASK_H_ */

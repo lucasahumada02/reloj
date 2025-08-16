@@ -2,6 +2,9 @@
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "config.h": "c",
-        "limits": "c"
+        "limits": "c",
+        "digital.h": "c",
+        "stdint.h": "c",
+        "stdbool.h": "c"
     }
 }

@@ -58,7 +58,6 @@ extern "C" {
 /* === Public variable declarations ================================================================================ */
 
 typedef struct button_args_s {
-    board_t board;                   // Objeto placa
     EventGroupHandle_t clock_events; // grupo de eventos
     uint8_t event_push;         // Bits asociados a evento de presionar un boton
     uint8_t event_hold;          // evento asociado presionar un boton durante x tiempo

@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
+Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,19 +17,28 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file clock_task.c
- ** @brief Implementacion del reloj
+/** @file refresh_task.c
+ ** @brief Definicion de la tarea refrescar
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "clock_task.h"
+#include "refresh_task.h"
+#include "time_task.h"
+#include <stdbool.h>
+#include <stdint.h>
+
 
 /* === Macros definitions ========================================================================================== */
 
-/* === Private data type declarations ============================================================================== */
+extern board_t board;
+extern clock_t clock;
+extern clock_mode_t mode;
+extern uint8_t digits[4];
+extern SemaphoreHandle_t hourMutex;
+extern tick_args_t tick_param;
 
-static clock_state_t actual_mode;
+/* === Private data type declarations ============================================================================== */
 
 /* === Private function declarations =============================================================================== */
 
@@ -41,5 +50,55 @@ static clock_state_t actual_mode;
 
 /* === Public function implementation ============================================================================== */
 
+void RefreshTask(void * pointer) {
+    const TickType_t kRefreshMs = 1;
+    const TickType_t kBlinkMs = 500;
+    TickType_t lastFrame = xTaskGetTickCount();
+    TickType_t lastBlink = xTaskGetTickCount();
+    bool blink = false;
+    clock_time_t localHour = {0};
+
+    while (true) {
+        xSemaphoreTake(hourMutex, portMAX_DELAY);
+        localHour = tick_param->hour;
+        xSemaphoreGive(hourMutex);
+
+        if (mode == SHOW_TIME || mode == UNCONFIGURED) {
+            clock_convert_time_to_bcd(&localHour, digits);
+        }
+
+        TickType_t now = xTaskGetTickCount();
+        if ((now - lastBlink) >= pdMS_TO_TICKS(kBlinkMs)) {
+            blink = !blink;
+            lastBlink = now;
+        }
+
+        ScreenWriteBCD(board->screen, digits, sizeof(digits));
+        for (int i = 0; i < 4; i++) {
+            ScreenSetDot(board->screen, i, false);
+        }
+
+        if (mode == SET_ALARM_MINUTES || mode == SET_ALARM_HOURS) {
+            ScreenSetDot(board->screen, 0, true);
+            ScreenSetDot(board->screen, 1, true);
+            ScreenSetDot(board->screen, 2, true);
+            ScreenSetDot(board->screen, 3, true);
+        }
+        if (mode == SHOW_TIME) {
+            ScreenSetDot(board->screen, 1, blink);
+        }
+        if (ClockIsAlarmActive(clock)) {
+            ScreenSetDot(board->screen, 0, true);
+        }
+        if (ClockIsAlarmEnabled(clock)) {
+            ScreenSetDot(board->screen, 3, true);
+        } else {
+            ScreenSetDot(board->screen, 3, false);
+        }
+
+        ScreenRefresh(board->screen);
+        vTaskDelayUntil(&lastFrame, pdMS_TO_TICKS(kRefreshMs));
+    }
+}
 
 /* === End of documentation ======================================================================================== */

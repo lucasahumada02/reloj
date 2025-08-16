@@ -173,29 +173,12 @@ board_t BoardCreate(void){
     return board;
 }
 
-// void SysTickInit(uint16_t ticks) {
-//     __asm volatile("cpsid i"); 
-//     SystemCoreClockUpdate(); 
-//     SysTick_Config(SystemCoreClock / ticks); 
-//     NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+void SysTickInit(uint16_t ticks) {
+    __asm volatile("cpsid i"); 
+    SystemCoreClockUpdate(); 
+    SysTick_Config(SystemCoreClock / ticks); 
+    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
     
-//     __asm volatile("cpsie i"); // Habilita las interrupciones
-// }
-
-// void BoardSetDisplayCallback(board_t board, display_update_callback_t callback) {
-//     display_callback = callback;
-//     current_board = board;
-// }
-
-// void SysTick_Handler(void) {
-//     static uint16_t flash_counter = 0;
-    
-//     ScreenRefresh(current_board->screen);
-    
-//     if (display_callback) {
-//         display_callback();
-//     }
-    
-//     flash_counter++;
-// }
+    __asm volatile("cpsie i"); // Habilita las interrupciones
+}
 /* === End of documentation ======================================================================================== */

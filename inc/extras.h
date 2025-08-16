@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-Copyright (c) Año, Nombre y Apellido del autor <correo@ejemplo.com>
+Copyright (c) 2025, Lucas Ahumada Checa Casquero <lucasahum@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -17,21 +17,18 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef CLOCK_TASK_H_
-#define CLOCK_TASK_H_
+#ifndef EXTRAS_H_
+#define EXTRAS_H_
 
-/** @file clock_task.h
- ** @brief Modulo para implementación de tarea del reloj
+/** @file extras.h
+ ** @brief Modulo para declaraciones de funciones auxiliares
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "event_groups.h"
-#include "semphr.h"
-#include "clock.h"
 #include "bsp.h"
+#include "clock.h"
+#include <stdint.h>
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -41,36 +38,73 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define CLOCK_TASK_STACK_SIZE (2 * configMINIMAL_STACK_SIZE)
-
 /* === Public data type declarations =============================================================================== */
 
-typedef struct clock_args_s {
-    clock_t clock;                  
-    clock_time_t current_time;      
-    clock_time_t alarm_time;         
-    board_t board;                  
-    uint8_t tick;                   
-    EventGroupHandle_t clock_events; 
-    SemaphoreHandle_t screen_mutex;  
-
-} * clock_args_t;
+typedef enum {
+    UNCONFIGURED,       // No configurado
+    SHOW_TIME,          // Modo normal
+    SET_TIME_MINUTES,   // Seteo de minutos del reloj
+    SET_TIME_HOURS,     // Seteo de horas del reloj
+    SET_ALARM_MINUTES,  // Seteo de minutos de la alarma
+    SET_ALARM_HOURS,    // Seteo de horas de la alarma
+} clock_mode_t;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
-/**
- * @brief Funcion para la hora y la alarma
- * 
- * @param args
- */
-void Clock_Task(void * args);
 
+/**
+ * @brief Convierte un tiempo de un arreglo BCD de 4 dígitos a clock_time_t
+ * 
+ * @param time Puntero a la estructura de tiempo  clock_time_t
+ * @param digits Puntero a un arreglo de 4 elementos donde se almacena el tiempo en formato [decena_hora, unidad_hora,
+ * decena_minuto, unidad_minuto]
+ */
+void clock_convert_time_to_bcd(clock_time_t * time, uint8_t digits[]);
+
+/**
+ * @brief Convierte un tiempo en formato clock_time_t a un arreglo BCD de 4 dígitos.
+ * 
+ * @param time Puntero a la estructura de tiempo  clock_time_t
+ * @param digits Puntero a un arreglo de 4 elementos donde se almacena el tiempo en formato [decena_hora, unidad_hora,
+ * decena_minuto, unidad_minuto
+ */
+void clock_convert_bcd_to_time(clock_time_t * time, uint8_t digits[]);
+
+/**
+ * @brief Obtiene el maximo valor de unidad
+ * 
+ * @param tens deceneas
+ * @param max_tens maximo de decenas
+ * @param max_units maximo de unidades
+ * @return uint8_t 
+ */
+uint8_t GetMaxUnits(uint8_t tens, uint8_t max_tens, uint8_t max_units);
+
+/**
+ * @brief Incrementa el valor de un numero en BCD respetando un limite maximo
+ * 
+ * @param units Unidades
+ * @param tens  Decenas
+ * @param max_units Máximo de unidades
+ * @param max_tens Máximo de decenas
+ */
+void clock_increment_bcd(uint8_t * units, uint8_t * tens, uint8_t max_units, uint8_t max_tens);
+
+/**
+ * @brief Decrementa el valor de un numero en BCD respetando un limite maximo
+ * 
+ * @param units Unidades
+ * @param tens Decenas
+ * @param max_units Máximo de unidades
+ * @param max_tens Máximo de decenas
+ */
+void clock_decrement_bcd(uint8_t * units, uint8_t * tens, uint8_t max_units, uint8_t max_tens);
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CLOCK_TASK_H_ */
+#endif /* EXTRAS_H_ */

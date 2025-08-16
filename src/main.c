@@ -49,9 +49,12 @@
 #include "event_groups.h"
 #include "task.h"
 #include "semphr.h"
-#include "time_task.h"
-#include "display_task.h"
 #include "buttons_task.h"
+#include <string.h>
+#include "time_task.h"
+#include "extras.h"
+#include "refresh_task.h"
+#include "state_task.h"
 
 
 /* === Macros definitions ====================================================================== */
@@ -60,17 +63,17 @@
 
 /* === Private variable declarations =========================================================== */
 
-static board_t board;
-static clock_t clock;
+board_t board;
+clock_t clock;
+clock_mode_t mode;
+clock_time_t hour = {0};
+clock_time_t alarm = {0};
+uint8_t digits[4] = {0};
+SemaphoreHandle_t hourMutex;
+EventGroupHandle_t keyEventGroup;
+tick_args_t tick_param;
 
 /* === Private function declarations =========================================================== */
-
-/**
- * @brief Funcion Baliza
- * 
- * @param parameter argumento de tarea
- */
-static void Blinking(void * parameter);
 
 /**
  * @brief Alarma sonando
@@ -85,13 +88,6 @@ static void AlarmaRinging(clock_t clock);
 
 /* === Private function implementation ========================================================= */
 
-static void Blinking(void * parameter){
-    while (true) {
-        DigitalOutputToggle(board->led_red);
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
-}
-
 static void AlarmaRinging(clock_t clock){
    if (ClockIsAlarmActive(clock)) {
         DigitalOutputActivate(board->led_red);
@@ -102,54 +98,52 @@ static void AlarmaRinging(clock_t clock){
 
 /* === Public function implementation ========================================================= */
 
-int main(void){ 
-
-    
-    clock = ClockCreate(1000, AlarmaRinging);
+int main(void) { 
     board = BoardCreate();
-     SemaphoreHandle_t screen_mutex;
-     EventGroupHandle_t clock_events;
-     clock_events = xEventGroupCreate();
-     screen_mutex = xSemaphoreCreateMutex();
-     BaseType_t result;
-         if (screen_mutex && clock_events)
-    {
-        tick_args_t tick_param = malloc(sizeof(*tick_param));
-        tick_param->clock_events = clock_events;
-        tick_param->tick_event = SECOND_EVENT;
-        tick_param->board = board;
-        result = xTaskCreate(Tick_Task, "Tick", TICK_TASK_STACK_SIZE, tick_param, tskIDLE_PRIORITY + 8, NULL);
-    }
-        if (result == pdPASS) {
-        refresh_args_t display_param = malloc(sizeof(*display_param));
-        display_param->board = board;
-        display_param->clock_events = clock_events;
-        display_param->screen_mutex = screen_mutex;
-        result = xTaskCreate(Refresh_Task, "Refresh", REFRESH_TASK_SRACK_SIZE, display_param, tskIDLE_PRIORITY + 9, NULL);
-    }
+    clock = ClockCreate(1000, AlarmaRinging);
+    SysTickInit(1000);
+    tick_param = malloc(sizeof(*tick_param));
+    hourMutex = xSemaphoreCreateMutex();
+    keyEventGroup = xEventGroupCreate();
+    ClockGetTime(clock, &tick_param->hour);
+    clock_convert_time_to_bcd(&tick_param->hour, digits);
+    ScreenWriteBCD(board->screen, digits, sizeof(digits));
     
-    if (result == pdPASS) {
-        button_args_t btn_param = malloc(sizeof(*btn_param));
-        btn_param->clock_events = clock_events;
-        btn_param->event_hold = BUTTON_EVENT_LONG_0;
-        btn_param->button = board->set_alarm;
-        result = xTaskCreate(ButtonHoldTask, "Set_Alarm", BUTTON_TASK_STACK_SIZE, btn_param, tskIDLE_PRIORITY + 1, NULL);
-    }
+    tick_param->clock = clock;
+    tick_param->hour = hour;
+    xTaskCreate(TimeTask, "TickTask", TICK_TASK_STACK_SIZE, tick_param, tskIDLE_PRIORITY + 3, NULL);
 
-    if (result == pdPASS) {
-        button_args_t btn_param = malloc(sizeof(*btn_param));
-        btn_param->clock_events = clock_events;
-        btn_param->event_push = BUTTON_EVENT_KEY_4;
-        btn_param->button = board->increment;
-        result = xTaskCreate(ButtonPushTask, "Increment", BUTTON_TASK_STACK_SIZE, btn_param, tskIDLE_PRIORITY + 1, NULL);
-    }
+    xTaskCreate(RefreshTask,"RefreshTask",REFRESH_TASK_STACK_SIZE,NULL,tskIDLE_PRIORITY+4,NULL);
+
+    xTaskCreate(StateTask,"StateTask",STATE_TASK_STACK_SIZE,NULL,tskIDLE_PRIORITY+2,NULL);
+
+    button_args_t btnAccept = malloc(sizeof(struct button_args_s));
+    btnAccept->clock_events = keyEventGroup; btnAccept->event_push = ACCEPT; btnAccept->button = board->accept;
+    xTaskCreate(ButtonPushTask,"BtnAccept",BUTTON_TASK_STACK_SIZE,btnAccept,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnCancel = malloc(sizeof(struct button_args_s));
+    btnCancel->clock_events = keyEventGroup; btnCancel->event_push = CANCEL; btnCancel->button = board->cancel;
+    xTaskCreate(ButtonPushTask,"BtnCancel",BUTTON_TASK_STACK_SIZE,btnCancel,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnInc = malloc(sizeof(struct button_args_s));
+    btnInc->clock_events = keyEventGroup; btnInc->event_push = INCREMENT; btnInc->button = board->increment;
+    xTaskCreate(ButtonPushTask,"BtnInc",BUTTON_TASK_STACK_SIZE,btnInc,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnDec = malloc(sizeof(struct button_args_s));
+    btnDec->clock_events = keyEventGroup; btnDec->event_push = DECREMENT; btnDec->button = board->decrement;
+    xTaskCreate(ButtonPushTask,"BtnDec",BUTTON_TASK_STACK_SIZE,btnDec,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnSetTime = malloc(sizeof(struct button_args_s));
+    btnSetTime->clock_events = keyEventGroup; btnSetTime->event_hold = SET_TIME; btnSetTime->button = board->set_time;
+    xTaskCreate(ButtonHoldTask,"BtnSetTime",BUTTON_TASK_STACK_SIZE,btnSetTime,tskIDLE_PRIORITY+1,NULL);
+
+    button_args_t btnSetAlarm = malloc(sizeof(struct button_args_s));
+    btnSetAlarm->clock_events = keyEventGroup; btnSetAlarm->event_hold = SET_ALARM; btnSetAlarm->button = board->set_alarm;
+    xTaskCreate(ButtonHoldTask,"BtnSetAlarm",BUTTON_TASK_STACK_SIZE,btnSetAlarm,tskIDLE_PRIORITY+1,NULL);
+
     vTaskStartScheduler();
-
-
-    while (true) {
-    }
+    while(1){}
 }
-
 /* === End of documentation ==================================================================== */
 
 /** @} End of module definition for doxygen */

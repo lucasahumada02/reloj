@@ -39,17 +39,16 @@ SPDX-License-Identifier: MIT
 
 /* === Public function implementation ============================================================================== */
 
-void Tick_Task(void * args) {
-    tick_args_t parameters = args;
-    TickType_t last_time;
-    last_time = xTaskGetTickCount();
-    TickType_t duration = pdMS_TO_TICKS(1000);
 
-    while (true) {
-        vTaskDelayUntil(&last_time, duration);
-        // Indicador de que avanza 1 seg
-        DigitalOutputToggle(parameters->board->led_green);
-        xEventGroupSetBits(parameters->clock_events, parameters->tick_event);
+void TimeTask(void * args){
+    tick_args_t parameters = args;
+    TickType_t lastTick = xTaskGetTickCount();
+    while(1){
+        ClockNewTick(parameters->clock);
+        xSemaphoreTake(hourMutex, portMAX_DELAY);
+        ClockGetTime(parameters->clock,&parameters->hour);
+        xSemaphoreGive(hourMutex);
+        vTaskDelayUntil(&lastTick,pdMS_TO_TICKS(1));
     }
 }
 
